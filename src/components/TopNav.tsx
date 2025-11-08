@@ -13,7 +13,6 @@ export const TopNav = () => {
     { to: "/devices", label: "Devices" },
     { to: "/status", label: "Network Status" },
     { to: "/help", label: "Help" },
-    { to: "/tickets", label: "Tickets" },
   ];
 
   return (

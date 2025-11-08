@@ -1,18 +1,44 @@
+import { useState } from "react";
 import { TopNav } from "@/components/TopNav";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { faqs } from "@/lib/mockData";
-import { MessageSquare, Book, Phone, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
+import { MessageSquare, Send, LifeBuoy } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { TicketDialog } from "@/components/assist/TicketDialog";
+
+const quickQuestions = [
+  "I'm having trouble connecting to the network",
+  "My data isn't working",
+  "How do I enable Wi-Fi calling?",
+  "Why is my phone not sending texts?",
+  "I need help with international roaming",
+  "My 5G isn't working",
+];
 
 const Help = () => {
+  const navigate = useNavigate();
+  const [customQuestion, setCustomQuestion] = useState("");
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [ticketInitialIssue, setTicketInitialIssue] = useState("");
+
+  const handleQuestionSelect = (question: string) => {
+    navigate("/assist", { state: { initialQuestion: question } });
+  };
+
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (customQuestion.trim()) {
+      navigate("/assist", { state: { initialQuestion: customQuestion } });
+    }
+  };
+
+  const handleOpenTicket = (issue = "") => {
+    setTicketInitialIssue(issue);
+    setTicketDialogOpen(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <TopNav />
@@ -21,103 +47,105 @@ const Help = () => {
         <section className="py-12 bg-muted">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">How Can We Help?</h1>
+              <MessageSquare className="h-16 w-16 mx-auto mb-6 text-primary" />
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">AI Support Assistant</h1>
               <p className="text-xl text-muted-foreground mb-8">
-                Get instant support from our AI assistant or browse our help resources
+                Get instant help with network issues, device setup, and troubleshooting
               </p>
-              <Link to="/assist">
-                <Button size="lg" data-testid="start-help">
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  Start Troubleshooting
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Button>
-              </Link>
             </div>
           </div>
         </section>
 
-        {/* Quick Help Options */}
+        {/* Quick Questions */}
         <section className="py-12">
           <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                    <MessageSquare className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>AI Assistant</CardTitle>
-                  <CardDescription>
-                    Get instant help with network issues, device setup, and more
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link to="/assist">
-                    <Button variant="ghost" className="group">
-                      Get Started
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6 text-center">Quick Questions</h2>
+              <p className="text-center text-muted-foreground mb-8">
+                Select a common issue to start troubleshooting with our AI assistant
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                {quickQuestions.map((question, idx) => (
+                  <Card 
+                    key={idx} 
+                    className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+                    onClick={() => handleQuestionSelect(question)}
+                  >
+                    <CardContent className="p-6">
+                      <p className="text-foreground">{question}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
 
-              <Card className="hover:shadow-lg transition-shadow">
+        {/* Custom Question */}
+        <section className="py-12 bg-muted">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto">
+              <Card>
                 <CardHeader>
-                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                    <Book className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Knowledge Base</CardTitle>
+                  <CardTitle>Have a Different Question?</CardTitle>
                   <CardDescription>
-                    Browse articles and guides for device setup and troubleshooting
+                    Describe your issue and our AI assistant will help you troubleshoot
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="ghost" className="group">
-                    Browse Articles
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                    <Phone className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>Contact Support</CardTitle>
-                  <CardDescription>
-                    Speak with a support representative for complex issues
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="ghost" className="group">
-                    Call Us
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+                  <form onSubmit={handleCustomSubmit} className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Type your question here..."
+                        value={customQuestion}
+                        onChange={(e) => setCustomQuestion(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button type="submit" disabled={!customQuestion.trim()}>
+                        <Send className="h-4 w-4 mr-2" />
+                        Ask AI
+                      </Button>
+                    </div>
+                  </form>
                 </CardContent>
               </Card>
             </div>
           </div>
         </section>
 
-        {/* FAQ Section */}
-        <section className="py-12 bg-muted">
+        {/* Fallback Support */}
+        <section className="py-12">
           <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl font-bold mb-8 text-center">Frequently Asked Questions</h2>
-              <Accordion type="single" collapsible className="w-full">
-                {faqs.map((faq, idx) => (
-                  <AccordionItem key={idx} value={`item-${idx}`}>
-                    <AccordionTrigger>{faq.question}</AccordionTrigger>
-                    <AccordionContent>{faq.answer}</AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+            <div className="max-w-2xl mx-auto text-center">
+              <Card>
+                <CardHeader>
+                  <LifeBuoy className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <CardTitle>Still Need Help?</CardTitle>
+                  <CardDescription>
+                    If our AI assistant can't resolve your issue, open a support ticket and our team will help you directly
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    onClick={() => handleOpenTicket()}
+                  >
+                    Open Support Ticket
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
       </main>
 
       <Footer />
+      <TicketDialog 
+        open={ticketDialogOpen} 
+        onOpenChange={setTicketDialogOpen}
+        initialIssue={ticketInitialIssue}
+      />
     </div>
   );
 };

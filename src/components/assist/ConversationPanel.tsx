@@ -16,6 +16,7 @@ interface Message {
 interface ConversationPanelProps {
   sessionId: string;
   onStateChange?: (state: string) => void;
+  initialQuestion?: string;
 }
 
 const quickPrompts = [
@@ -25,7 +26,7 @@ const quickPrompts = [
   "Slow data speeds",
 ];
 
-export const ConversationPanel = ({ sessionId, onStateChange }: ConversationPanelProps) => {
+export const ConversationPanel = ({ sessionId, onStateChange, initialQuestion }: ConversationPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -37,6 +38,13 @@ export const ConversationPanel = ({ sessionId, onStateChange }: ConversationPane
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Handle initial question from Help page
+  useEffect(() => {
+    if (initialQuestion) {
+      handleSend(initialQuestion);
+    }
+  }, [initialQuestion]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

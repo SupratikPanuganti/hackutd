@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { TopNav } from "@/components/TopNav";
 import { Footer } from "@/components/Footer";
 import { ConversationPanel } from "@/components/assist/ConversationPanel";
@@ -7,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const Assist = () => {
+  const location = useLocation();
   const [sessionId] = useState(`sess_${Date.now()}`);
   const [currentState, setCurrentState] = useState("START");
+  const [initialQuestion, setInitialQuestion] = useState<string | undefined>();
   const [statusData, setStatusData] = useState({
     score: 0.46,
     sparkline: [0.71, 0.69, 0.65, 0.58, 0.52, 0.46],
@@ -17,6 +20,12 @@ const Assist = () => {
     towerId: "eNB-123",
     stepsTried: ["toggle_airplane", "apn_check", "dns_probe"],
   });
+
+  useEffect(() => {
+    if (location.state?.initialQuestion) {
+      setInitialQuestion(location.state.initialQuestion);
+    }
+  }, [location]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -41,10 +50,11 @@ const Assist = () => {
                   <CardTitle>Conversation</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 h-[calc(100%-5rem)]">
-                  <ConversationPanel 
-                    sessionId={sessionId}
-                    onStateChange={setCurrentState}
-                  />
+              <ConversationPanel 
+                sessionId={sessionId} 
+                onStateChange={setCurrentState}
+                initialQuestion={initialQuestion}
+              />
                 </CardContent>
               </Card>
             </div>
