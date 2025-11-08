@@ -14,7 +14,6 @@ export const TopNav = () => {
     { to: "/status", label: "Network Status" },
     { to: "/help", label: "Help" },
     { to: "/tickets", label: "Tickets" },
-    { to: "/admin", label: "Admin" },
   ];
 
   return (
@@ -55,7 +54,6 @@ export const TopNav = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         <div
           className={cn(
             "md:hidden overflow-hidden transition-all duration-300",

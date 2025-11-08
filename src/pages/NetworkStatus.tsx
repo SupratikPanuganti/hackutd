@@ -3,8 +3,9 @@ import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { regions, incidents } from "@/lib/mockData";
+import { regions, incidents, towers } from "@/lib/mockData";
 import { CheckCircle, AlertCircle, Bell } from "lucide-react";
+import { MapboxMap } from "@/components/MapboxMap";
 import {
   Table,
   TableBody,
@@ -25,7 +26,7 @@ const NetworkStatus = () => {
             <div className="text-center max-w-3xl mx-auto">
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Network Status</h1>
               <p className="text-xl text-muted-foreground">
-                Real-time updates on network performance and incidents
+                Real-time updates on network performance and tower locations
               </p>
             </div>
           </div>
@@ -47,6 +48,23 @@ const NetworkStatus = () => {
                   <Bell className="h-4 w-4 mr-2" />
                   Subscribe to Status Updates
                 </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Interactive Map */}
+        <section className="py-8">
+          <div className="container mx-auto px-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cell Tower Map</CardTitle>
+                <CardDescription>
+                  Interactive map showing real-time tower locations and health status
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <MapboxMap className="w-full h-[500px] rounded-b-2xl" />
               </CardContent>
             </Card>
           </div>
@@ -81,6 +99,48 @@ const NetworkStatus = () => {
                   </Card>
                 ))}
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Tower Details Table */}
+        <section className="py-8">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tower Details</CardTitle>
+                  <CardDescription>Detailed information about each cell tower</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tower ID</TableHead>
+                        <TableHead>Region</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Location</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {towers.map((tower) => (
+                        <TableRow key={tower.id}>
+                          <TableCell className="font-mono">{tower.id}</TableCell>
+                          <TableCell>{tower.region}</TableCell>
+                          <TableCell>
+                            <Badge variant={tower.health === "ok" ? "default" : "secondary"}>
+                              {tower.health === "ok" ? "Operational" : "Degraded"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {tower.lat.toFixed(4)}, {tower.lng.toFixed(4)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
