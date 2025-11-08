@@ -6,7 +6,7 @@ export const Footer = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="font-bold text-lg mb-4">Auto<span className="text-primary">Care</span></h3>
+            <h3 className="font-bold text-lg mb-4">T-<span className="text-primary">Care</span></h3>
             <p className="text-sm text-muted-foreground">
               Your trusted carrier for seamless connectivity
             </p>
@@ -44,7 +44,7 @@ export const Footer = () => {
         </div>
 
         <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} AutoCare. All rights reserved.
+          © {new Date().getFullYear()} T-Care. All rights reserved.
         </div>
       </div>
     </footer>
