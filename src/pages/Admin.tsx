@@ -32,12 +32,12 @@ const Admin = () => {
               {regions.map((region) => (
                 <Card key={region.id}>
                   <CardHeader>
-                    <CardTitle className="text-lg">{region.name}</CardTitle>
-                    <CardDescription>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{region.name}</CardTitle>
                       <Badge variant={region.health === "ok" ? "default" : "secondary"}>
                         {region.health === "ok" ? "Healthy" : "Degraded"}
                       </Badge>
-                    </CardDescription>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
