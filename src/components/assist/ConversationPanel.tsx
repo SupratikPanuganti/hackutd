@@ -17,6 +17,7 @@ interface ConversationPanelProps {
   sessionId: string;
   onStateChange?: (state: string) => void;
   initialQuestion?: string;
+  isFloating?: boolean;
 }
 
 const quickPrompts = [
@@ -26,7 +27,7 @@ const quickPrompts = [
   "Slow data speeds",
 ];
 
-export const ConversationPanel = ({ sessionId, onStateChange, initialQuestion }: ConversationPanelProps) => {
+export const ConversationPanel = ({ sessionId, onStateChange, initialQuestion, isFloating }: ConversationPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",

@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Bot } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAgentic } from "@/contexts/AgenticContext";
+import { Badge } from "@/components/ui/badge";
 
 export const TopNav = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isEnabled } = useAgentic();
 
   const links = [
     { to: "/plans", label: "Plans" },
@@ -39,6 +42,12 @@ export const TopNav = () => {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
+            {isEnabled && (
+              <Badge variant="secondary" className="hidden md:flex items-center gap-1">
+                <Bot className="h-3 w-3" />
+                AI Active
+              </Badge>
+            )}
             <Button variant="outline" size="sm" className="hidden md:inline-flex">
               Sign In
             </Button>

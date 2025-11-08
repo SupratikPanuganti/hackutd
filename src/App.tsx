@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AgenticProvider } from "@/contexts/AgenticContext";
+import { FloatingAssistant } from "@/components/FloatingAssistant";
 import Home from "./pages/Home";
 import Plans from "./pages/Plans";
 import Coverage from "./pages/Coverage";
@@ -20,17 +22,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/plans" element={<Plans />} />
-          <Route path="/coverage" element={<Coverage />} />
-          <Route path="/devices" element={<Devices />} />
-          <Route path="/status" element={<NetworkStatus />} />
-          <Route path="/help" element={<Help />} />
-          <Route path="/assist" element={<Assist />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AgenticProvider>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/plans" element={<Plans />} />
+            <Route path="/coverage" element={<Coverage />} />
+            <Route path="/devices" element={<Devices />} />
+            <Route path="/status" element={<NetworkStatus />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/assist" element={<Assist />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <FloatingAssistant />
+        </AgenticProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

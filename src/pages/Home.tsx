@@ -5,9 +5,24 @@ import { Input } from "@/components/ui/input";
 import { ArrowRight, Shield, Zap, Globe } from "lucide-react";
 import { TopNav } from "@/components/TopNav";
 import { Footer } from "@/components/Footer";
+import { AgenticModeModal } from "@/components/AgenticModeModal";
+import { useAgentic } from "@/contexts/AgenticContext";
+import { useState, useEffect } from "react";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const Home = () => {
+  const { hasSeenOnboarding } = useAgentic();
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    if (!hasSeenOnboarding) {
+      const timer = setTimeout(() => {
+        setShowModal(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasSeenOnboarding]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <TopNav />
@@ -147,6 +162,8 @@ const Home = () => {
       </section>
 
       <Footer />
+      
+      <AgenticModeModal open={showModal} onOpenChange={setShowModal} />
     </div>
   );
 };
