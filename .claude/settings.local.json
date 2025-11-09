@@ -1,6 +1,9 @@
 {
   "permissions": {
     "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(copy .env server.env)"
       "Bash(dir:*)",
       "Bash(cat:*)",
       "Bash(npm run lint)",

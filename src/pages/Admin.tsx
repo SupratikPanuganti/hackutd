@@ -168,7 +168,7 @@ Please provide your analysis in the following JSON format (respond ONLY with val
   ],
   "trends": [
     {
-      "category": "Employee Satisfaction",
+      "category": "Customer Satisfaction",
       "tmobile": <score matching competitorComparison>,
       "att": <score matching competitorComparison>,
       "verizon": <score matching competitorComparison>,
@@ -492,7 +492,7 @@ CRITICAL: Ensure all scores are varied and realistic. For example, if Spectrum's
                             <CardContent>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between text-white/80">
-                                  <span>Employee Satisfaction:</span>
+                                  <span>Customer Satisfaction:</span>
                                   <span className="font-bold text-white">{company.employeeSatisfaction || 'N/A'}</span>
                                 </div>
                                 <div className="flex justify-between text-white/80">
