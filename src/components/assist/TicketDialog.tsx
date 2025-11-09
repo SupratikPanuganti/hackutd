@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,11 @@ export const TicketDialog = ({ open, onOpenChange, initialIssue = "" }: TicketDi
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setSubject(initialIssue);
+  }, [initialIssue, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import './LiquidEther.css';
@@ -849,7 +850,7 @@ export default function LiquidEther({
           wrapS: THREE.ClampToEdgeWrapping,
           wrapT: THREE.ClampToEdgeWrapping
         };
-        for (let key in this.fbos) {
+        for (const key in this.fbos) {
           this.fbos[key] = new THREE.WebGLRenderTarget(this.fboSize.x, this.fboSize.y, opts);
         }
       }
@@ -911,7 +912,7 @@ export default function LiquidEther({
 
       resize() {
         this.calcSize();
-        for (let key in this.fbos) {
+        for (const key in this.fbos) {
           this.fbos[key].setSize(this.fboSize.x, this.fboSize.y);
         }
       }

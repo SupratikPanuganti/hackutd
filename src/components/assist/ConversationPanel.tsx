@@ -7,6 +7,7 @@ import { EvidenceChips } from "./EvidenceChips";
 import { cn } from "@/lib/utils";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { useMediaPermissions } from "@/hooks/useMediaPermissions";
+import { Loader2, Mic } from "lucide-react";
 import {
   getVapiClient,
   startVoiceCall,
@@ -28,6 +29,7 @@ interface ConversationPanelProps {
   sessionId: string;
   onStateChange?: (state: string) => void;
   initialQuestion?: string;
+  questionSignal?: number;
   isFloating?: boolean;
   readOnly?: boolean;
   autoStartVoice?: boolean;
@@ -44,6 +46,7 @@ export const ConversationPanel = ({
   sessionId,
   onStateChange,
   initialQuestion,
+  questionSignal = 0,
   isFloating,
   readOnly = false,
   autoStartVoice = false,
@@ -66,13 +69,19 @@ export const ConversationPanel = ({
   const { requestMicrophone } = useMediaPermissions();
   const autoStartTriggeredRef = useRef(false);
 
-  // Handle initial question from Help page
+  // Handle initial question from Help page or other entry-points
   useEffect(() => {
-    logVapiDebug("ConversationPanel mounted", { sessionId, initialQuestion, isFloating, readOnly });
+    logVapiDebug("ConversationPanel initial question effect", {
+      sessionId,
+      initialQuestion,
+      questionSignal,
+      isFloating,
+      readOnly,
+    });
     if (initialQuestion) {
       handleSend(initialQuestion);
     }
-  }, [initialQuestion]);
+  }, [initialQuestion, questionSignal]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
