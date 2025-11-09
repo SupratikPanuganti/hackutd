@@ -1,25 +1,66 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, Bot } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAgentic } from "@/contexts/AgenticContext";
-import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 export const TopNav = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isEnabled } = useAgentic();
+  const [isTogglingAgent, setIsTogglingAgent] = useState(false);
+  const { isEnabled, enableAgenticMode, disableAgenticMode } = useAgentic();
+  const { toast } = useToast();
+  const location = useLocation();
 
   const links = [
     { to: "/plans", label: "Plans" },
-    { to: "/coverage", label: "Coverage" },
     { to: "/devices", label: "Devices" },
-    { to: "/status", label: "Network Status" },
+    { to: "/status", label: "Network" },
     { to: "/help", label: "Help" },
   ];
 
+  const handleAgentToggle = useCallback(async () => {
+    if (isTogglingAgent) return;
+
+    setIsTogglingAgent(true);
+
+    try {
+      if (isEnabled) {
+        disableAgenticMode();
+        toast({
+          title: "AI Agent Disabled",
+          description: "AI agent mode has been turned off.",
+        });
+      } else {
+        const success = await enableAgenticMode();
+
+        if (success) {
+          toast({
+            title: "AI Agent Activated! 🎉",
+            description: "Your AI assistant is now available throughout your journey.",
+          });
+        } else {
+          toast({
+            title: "Permissions Required",
+            description: "Please grant camera or microphone access to enable AI agent mode.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "We couldn't toggle the AI agent mode. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingAgent(false);
+    }
+  }, [disableAgenticMode, enableAgenticMode, isEnabled, isTogglingAgent, toast]);
+
   return (
-    <nav className="sticky top-0 z-50 bg-background border-b border-border">
+    <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/60 border-b border-border/50 shadow-lg">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -33,7 +74,15 @@ export const TopNav = () => {
           <div className="hidden md:flex items-center space-x-1">
             {links.map((link) => (
               <Link key={link.to} to={link.to}>
-                <Button variant="ghost" className="text-foreground">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "text-foreground transition-all",
+                    (location.pathname === link.to ||
+                      (link.to !== "/" && location.pathname.startsWith(link.to))) &&
+                      "border border-primary text-primary shadow-sm bg-primary/5"
+                  )}
+                >
                   {link.label}
                 </Button>
               </Link>
@@ -42,12 +91,16 @@ export const TopNav = () => {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-            {isEnabled && (
-              <Badge variant="secondary" className="hidden md:flex items-center gap-1">
-                <Bot className="h-3 w-3" />
-                AI Active
-              </Badge>
-            )}
+            <Button
+              variant={isEnabled ? "secondary" : "outline"}
+              size="sm"
+              className="hidden md:inline-flex items-center gap-1"
+              onClick={handleAgentToggle}
+              disabled={isTogglingAgent}
+            >
+              <Bot className="h-3 w-3" />
+              {isEnabled ? "Disable AI" : "Enable AI"}
+            </Button>
             <Button variant="outline" size="sm" className="hidden md:inline-flex">
               Sign In
             </Button>
@@ -75,11 +128,29 @@ export const TopNav = () => {
                 to={link.to}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <Button variant="ghost" className="w-full justify-start text-foreground">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start text-foreground transition-all",
+                    (location.pathname === link.to ||
+                      (link.to !== "/" && location.pathname.startsWith(link.to))) &&
+                      "border border-primary text-primary shadow-sm bg-primary/5"
+                  )}
+                >
                   {link.label}
                 </Button>
               </Link>
             ))}
+            <Button
+              variant={isEnabled ? "secondary" : "outline"}
+              size="sm"
+              className="w-full justify-start inline-flex items-center gap-2"
+              onClick={handleAgentToggle}
+              disabled={isTogglingAgent}
+            >
+              <Bot className="h-4 w-4" />
+              {isEnabled ? "Disable AI" : "Enable AI"}
+            </Button>
             <Button variant="outline" size="sm" className="w-full">
               Sign In
             </Button>

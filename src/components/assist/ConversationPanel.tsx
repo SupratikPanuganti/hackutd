@@ -18,6 +18,7 @@ interface ConversationPanelProps {
   onStateChange?: (state: string) => void;
   initialQuestion?: string;
   isFloating?: boolean;
+  readOnly?: boolean;
 }
 
 const quickPrompts = [
@@ -27,7 +28,7 @@ const quickPrompts = [
   "Slow data speeds",
 ];
 
-export const ConversationPanel = ({ sessionId, onStateChange, initialQuestion, isFloating }: ConversationPanelProps) => {
+export const ConversationPanel = ({ sessionId, onStateChange, initialQuestion, isFloating, readOnly = false }: ConversationPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -113,57 +114,59 @@ export const ConversationPanel = ({ sessionId, onStateChange, initialQuestion, i
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Prompts */}
-      <div className="p-4 border-t border-border">
-        <div className="flex flex-wrap gap-2 mb-3">
-          {quickPrompts.map((prompt, idx) => (
-            <Badge
-              key={idx}
-              variant="outline"
-              className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-              onClick={() => handleSend(prompt)}
+      {/* Quick Prompts and Composer - Hidden in read-only mode */}
+      {!readOnly && (
+        <div className="p-4 border-t border-border">
+          <div className="flex flex-wrap gap-2 mb-3">
+            {quickPrompts.map((prompt, idx) => (
+              <Badge
+                key={idx}
+                variant="outline"
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                onClick={() => handleSend(prompt)}
+              >
+                {prompt}
+              </Badge>
+            ))}
+          </div>
+
+          {/* Composer */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Describe your issue..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              data-testid="composer-input"
+            />
+            <Button
+              size="icon"
+              variant={voiceEnabled ? "default" : "outline"}
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              data-testid="voice-toggle"
             >
-              {prompt}
-            </Badge>
-          ))}
-        </div>
+              <Mic className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant={cameraEnabled ? "default" : "outline"}
+              onClick={() => setCameraEnabled(!cameraEnabled)}
+              data-testid="cam-toggle"
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+            <Button size="icon" onClick={() => handleSend()} data-testid="send-btn">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
 
-        {/* Composer */}
-        <div className="flex gap-2">
-          <Input
-            placeholder="Describe your issue..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            data-testid="composer-input"
-          />
-          <Button
-            size="icon"
-            variant={voiceEnabled ? "default" : "outline"}
-            onClick={() => setVoiceEnabled(!voiceEnabled)}
-            data-testid="voice-toggle"
-          >
-            <Mic className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant={cameraEnabled ? "default" : "outline"}
-            onClick={() => setCameraEnabled(!cameraEnabled)}
-            data-testid="cam-toggle"
-          >
-            <Video className="h-4 w-4" />
-          </Button>
-          <Button size="icon" onClick={() => handleSend()} data-testid="send-btn">
-            <Send className="h-4 w-4" />
-          </Button>
+          {cameraEnabled && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Camera access requested. We'll analyze your device display to help diagnose issues.
+            </p>
+          )}
         </div>
-
-        {cameraEnabled && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Camera access requested. We'll analyze your device display to help diagnose issues.
-          </p>
-        )}
-      </div>
+      )}
     </div>
   );
 };

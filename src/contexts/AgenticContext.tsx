@@ -86,7 +86,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
     
     if (hasAnyPermission) {
       setIsEnabled(true);
-      setIsAssistantOpen(true);
+      setIsAssistantOpen(false);
       return true;
     }
     

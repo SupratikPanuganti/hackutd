@@ -7,7 +7,6 @@ import { AgenticProvider } from "@/contexts/AgenticContext";
 import { FloatingAssistant } from "@/components/FloatingAssistant";
 import Home from "./pages/Home";
 import Plans from "./pages/Plans";
-import Coverage from "./pages/Coverage";
 import Devices from "./pages/Devices";
 import NetworkStatus from "./pages/NetworkStatus";
 import Help from "./pages/Help";
@@ -26,7 +25,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/plans" element={<Plans />} />
-            <Route path="/coverage" element={<Coverage />} />
             <Route path="/devices" element={<Devices />} />
             <Route path="/status" element={<NetworkStatus />} />
             <Route path="/help" element={<Help />} />

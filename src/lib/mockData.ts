@@ -43,15 +43,24 @@ export const plans = [
 ];
 
 export const regions = [
-  { id: "atl", name: "Midtown ATL", health: "ok" },
+  { id: "dallas", name: "Dallas", health: "ok" },
   { id: "austin", name: "Austin", health: "ok" },
-  { id: "seattle", name: "Seattle", health: "degraded" },
+  { id: "houston", name: "Houston", health: "ok" },
+  { id: "san-antonio", name: "San Antonio", health: "degraded" },
+  { id: "fort-worth", name: "Fort Worth", health: "ok" },
 ];
 
 export const towers = [
-  { id: "eNB-123", region: "Midtown ATL", health: "degraded", lat: 33.7756, lng: -84.3963 },
-  { id: "eNB-456", region: "Austin", health: "ok", lat: 30.2672, lng: -97.7431 },
-  { id: "eNB-789", region: "Seattle", health: "ok", lat: 47.6062, lng: -122.3321 },
+  { id: "eNB-001", region: "Dallas", health: "ok", lat: 32.7767, lng: -96.7970 },
+  { id: "eNB-002", region: "Austin", health: "ok", lat: 30.2672, lng: -97.7431 },
+  { id: "eNB-003", region: "Houston", health: "ok", lat: 29.7604, lng: -95.3698 },
+  { id: "eNB-004", region: "San Antonio", health: "degraded", lat: 29.4241, lng: -98.4936 },
+  { id: "eNB-005", region: "Fort Worth", health: "ok", lat: 32.7555, lng: -97.3308 },
+  { id: "eNB-006", region: "El Paso", health: "ok", lat: 31.7619, lng: -106.4850 },
+  { id: "eNB-007", region: "Arlington", health: "ok", lat: 32.7357, lng: -97.1081 },
+  { id: "eNB-008", region: "Corpus Christi", health: "degraded", lat: 27.8006, lng: -97.3964 },
+  { id: "eNB-009", region: "Plano", health: "ok", lat: 33.0198, lng: -96.6989 },
+  { id: "eNB-010", region: "Lubbock", health: "ok", lat: 33.5779, lng: -101.8552 },
 ];
 
 export const devices = [
