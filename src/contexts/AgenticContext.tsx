@@ -171,12 +171,20 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       routeLabel: getRouteLabel(location.pathname),
     }));
     logVapiDebug("Agentic context route change", { pathname: location.pathname });
-  }, [location.pathname]);
+
+    // CRITICAL: Send IMMEDIATE context update to Vapi when route changes
+    // This ensures Vapi knows about the new page context BEFORE responding
+    if (isVoiceActive && contextUpdaterRef.current?.isRunning()) {
+      console.log('🔄 [ROUTE CHANGE] Sending immediate context update to Vapi');
+      contextUpdaterRef.current.sendImmediateUpdate(buildContextUpdate());
+    }
+  }, [location.pathname, isVoiceActive, buildContextUpdate]);
 
   // WebSocket connection for sentiment streaming
   useEffect(() => {
-    // Only connect WebSocket when Agent Mode is enabled AND camera permission granted
-    if (!isEnabled || !hasPermissions.camera) {
+    // Only connect WebSocket when Agent Mode is enabled
+    // Note: We don't need camera permission here because the backend handles the camera
+    if (!isEnabled) {
       // Cleanup if Agent Mode is disabled
       if (wsRef.current) {
         wsRef.current.close();
@@ -207,8 +215,8 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
                 label: getSentimentLabel(message.data.value),
               };
 
-              console.log('[SENTIMENT DEBUG] Received sentiment:', sentimentData);
-
+              // If we're receiving sentiment data, the service must be running
+              setIsSentimentServiceRunning(true);
               setCurrentSentiment(sentimentData);
               setSentimentHistory(prev => {
                 const updated = [...prev, sentimentData];
@@ -221,7 +229,6 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
                 calculateTrend();
               }
             } else if (message.type === 'status') {
-              console.log('[SENTIMENT DEBUG] Service status:', message.data.running);
               setIsSentimentServiceRunning(message.data.running);
             }
           } catch (error) {
@@ -237,8 +244,8 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
           logVapiDebug('Sentiment WebSocket closed');
           wsRef.current = null;
 
-          // Attempt reconnect after 5 seconds
-          if (isEnabled && hasPermissions.camera) {
+          // Attempt reconnect after 5 seconds if Agent Mode still enabled
+          if (isEnabled) {
             reconnectTimeoutRef.current = window.setTimeout(() => {
               logVapiDebug('Attempting to reconnect sentiment WebSocket');
               connectWebSocket();
@@ -262,7 +269,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEnabled, hasPermissions.camera]);
+  }, [isEnabled]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -387,25 +394,68 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Get multimodal context payload
       const contextPayload = getMultimodalContext();
 
+      // Brief greeting message for first activation
+      const greetingMessage = "Hi! I'm Tee, your T-Mobile assistant. How can I help you today?";
+
       // Enhanced context with instructions for the assistant
       const enhancedContext = `
 ${contextPayload}
 
-INSTRUCTIONS:
-- You are Tee, a T-Mobile customer care AI assistant
-- You can help with account questions, technical support, plan information, and device compatibility
-- You have access to the user's current page and sentiment
-- If the user seems frustrated (negative sentiment), be extra empathetic and prioritize quick solutions
-- You can navigate the user to different pages by mentioning them (e.g., "Let me show you our plans")
-- Available pages: Home, Plans, Devices, Network Status, Help, AI Assistant
-- Always be helpful, concise, and action-oriented
-- Focus on hands-free assistance - guide the user through tasks without requiring them to touch the screen
-- IMPORTANT: When the user first speaks to you, greet them warmly and introduce yourself as Tee, their T-Care AI assistant
-- Adapt your greeting based on their sentiment if available
+YOUR ROLE:
+- You are Tee, a T-Mobile sales assistant and product expert
+- You're not just support - you're a trusted advisor who helps customers find the perfect T-Mobile solutions
+- You have ALREADY greeted the user - do NOT repeat your introduction
+- ONLY respond when the user asks a question or requests help
+- Be conversational, friendly, and helpful - but stay brief
+
+🚨 CRITICAL - NAVIGATION RULES:
+- The system automatically navigates for the user - YOU DO NOT NEED TO TELL THEM HOW
+- When user says "take me to devices" or "show me plans":
+  * DO NOT say "tap on shop" or "click on the menu"
+  * DO NOT give navigation instructions
+  * Simply say "Switching to the [page] page now" and then answer their question
+  * The system will handle the actual navigation automatically
+- Answer questions about the CURRENT page you see
+- When navigation happens, you'll see the new page content automatically
+
+SENTIMENT-DRIVEN PERSONALIZATION (CRITICAL):
+- You have real-time sentiment data (Happy: 1, Neutral: 0, Frustrated: -1) and trends
+- USE THIS DATA to personalize every response:
+  * Happy (sentiment: 1): User is engaged! This is your chance to upsell, suggest premium options, explain benefits in detail
+  * Neutral (sentiment: 0): User is browsing - provide helpful info, gentle recommendations, keep it balanced
+  * Frustrated (sentiment: -1): User needs help NOW - be empathetic, offer quick solutions, simplify everything, apologize if needed
+- If sentiment is DECLINING: Change your approach immediately - be more direct, offer alternatives, show you understand
+- If sentiment is IMPROVING: Keep doing what you're doing - your approach is working
+
+🚨 INFORMATION GROUNDING - ABSOLUTE RULES (NEVER BREAK THESE):
+- WAIT for "PAGE LOADED" signal before responding to navigation requests
+- ONLY use information from the "PAGE CONTENT" section in your context updates
+- If specific product/plan/feature details are NOT in "PAGE CONTENT", you MUST NOT mention them
+- DO NOT invent prices, features, plan names, or page names that aren't explicitly shown
+- DO NOT assume pages exist beyond what's in PAGE CONTENT (no "shop", "store", "compare", etc.)
+- If you don't have the information in PAGE CONTENT, say "Let me pull that up for you" (navigation handles it)
+- When you see "PAGE LOADING" - STOP and WAIT for the "PAGE LOADED" signal with new context
+- NEVER respond based on old/stale page context after navigation starts
+
+PROACTIVE SELLING & RECOMMENDATIONS:
+- When on Plans page: Recommend plans based on user's needs - ask about usage, family size, streaming habits
+- When on Devices page: Suggest devices that match their lifestyle - ask iOS vs Android, photography needs, budget
+- Cross-sell naturally: "That plan pairs perfectly with..." or "Customers who love that device often add..."
+- Use phrases like: "Based on what you're looking at...", "I'd recommend...", "This would be perfect for you because..."
+- Create urgency when appropriate: "This plan is popular", "Great value for what you get"
+- Bundle opportunities: Mention device + plan combos, accessories, insurance
+
+RESPONSE STYLE:
+- Brief but warm - 2-3 sentences max unless user wants details
+- Use natural language: "you'd love", "perfect for", "great choice"
+- Ask questions to understand needs: "What matters most to you?", "Are you a heavy data user?"
+- Navigate proactively: If they ask about phones, say "Let me take you to our devices page"
+- Focus on benefits, not features: "all-day battery" not "5000mAh"
+- Use hands-free guidance: "I can show you our 5G plans" triggers navigation
 `;
 
-      // Start voice call without intro message - assistant will wait for user to speak first
-      await startVoiceCall(undefined, enhancedContext);
+      // Start voice call with brief greeting, then wait for user
+      await startVoiceCall(greetingMessage, enhancedContext);
       setIsVoiceActive(true);
       logVapiDebug("Voice assistant started successfully with context", {
         contextLength: enhancedContext.length,
@@ -516,26 +566,51 @@ INSTRUCTIONS:
 
     // Session info
     parts.push(`Session ID: ${sessionId}`);
-
-    // Screen context
     parts.push(`Current Page: ${screenContext.routeLabel} (${screenContext.route})`);
     if (screenContext.focusedElement) {
       parts.push(`User Focus: ${screenContext.focusedElement}`);
     }
 
-    // Sentiment context
+    // Sentiment context - CRITICAL for personalization
     if (currentSentiment) {
-      parts.push(`User Sentiment: ${currentSentiment.label} (${currentSentiment.value})`);
-      parts.push(`Sentiment Trend: ${sentimentTrend}`);
+      parts.push('\n=== REAL-TIME SENTIMENT DATA ===');
+      parts.push(`Current Sentiment: ${currentSentiment.label} (value: ${currentSentiment.value})`);
+      parts.push(`Trend: ${sentimentTrend.toUpperCase()}`);
+
+      // Actionable guidance based on sentiment
+      if (currentSentiment.value < -0.5) {
+        parts.push('⚠️ USER IS FRUSTRATED - Be empathetic, apologize, offer quick solutions, simplify everything');
+      } else if (currentSentiment.value < 0) {
+        parts.push('ℹ️ USER IS SLIGHTLY NEGATIVE - Be patient, helpful, and clear');
+      } else if (currentSentiment.value > 0.5) {
+        parts.push('✅ USER IS HAPPY - Great time to upsell, suggest premium options, explain benefits');
+      } else {
+        parts.push('➡️ USER IS NEUTRAL - Provide helpful info with gentle recommendations');
+      }
+
+      if (sentimentTrend === 'declining') {
+        parts.push('📉 SENTIMENT DECLINING - Change your approach! Be more direct, offer alternatives');
+      } else if (sentimentTrend === 'improving') {
+        parts.push('📈 SENTIMENT IMPROVING - Keep it up! Your approach is working');
+      }
+      parts.push('=== END SENTIMENT DATA ===\n');
+    }
+
+    // Visible page content - IMPORTANT for grounding responses
+    if (screenContext.visibleContent) {
+      parts.push('=== PAGE CONTENT ===');
+      parts.push(screenContext.visibleContent);
+      parts.push('=== END PAGE CONTENT ===\n');
     }
 
     // Recent conversation
     if (conversationHistory.length > 0) {
-      parts.push('\nRecent Conversation:');
+      parts.push('=== CONVERSATION HISTORY ===');
       const recentMessages = conversationHistory.slice(-5);
       recentMessages.forEach(msg => {
         parts.push(`${msg.role.toUpperCase()}: ${msg.content}`);
       });
+      parts.push('=== END CONVERSATION ===\n');
     }
 
     return parts.join('\n');
