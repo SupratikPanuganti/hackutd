@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TopNav } from "@/components/TopNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,10 @@ const Help = () => {
   const [initialPrompt, setInitialPrompt] = useState<string | undefined>();
   const [promptSignal, setPromptSignal] = useState(0);
   const conversationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const quickPrompts = [
     "My internet isn't working",
@@ -63,7 +67,26 @@ const Help = () => {
       <TopNav />
 
       <main className="flex-1 relative pb-16">
-        <section className="py-8 pt-24">
+        {/* AI Chatbot */}
+        <section className="py-8 pt-24" ref={conversationRef}>
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6 text-center text-white drop-shadow-md">Chat with AI Assistant</h2>
+              <p className="text-center text-white/90 mb-8 drop-shadow-md">
+                Get instant help with network issues, device setup, and troubleshooting
+              </p>
+              <Card className="h-[600px] rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10">
+                <ConversationPanel
+                  sessionId={sessionId}
+                  initialQuestion={initialPrompt}
+                  questionSignal={promptSignal}
+                />
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-12">
           <div className="container mx-auto px-4 space-y-8">
             <Card className="rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10">
               <CardHeader className="pb-2 md:pb-4">
@@ -112,25 +135,6 @@ const Help = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* AI Chatbot */}
-        <section className="py-12" ref={conversationRef}>
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-2xl font-bold mb-6 text-center text-white drop-shadow-md">Chat with AI Assistant</h2>
-              <p className="text-center text-white/90 mb-8 drop-shadow-md">
-                Get instant help with network issues, device setup, and troubleshooting
-              </p>
-              <Card className="h-[600px] rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10">
-                <ConversationPanel
-                  sessionId={sessionId}
-                  initialQuestion={initialPrompt}
-                  questionSignal={promptSignal}
-                />
-              </Card>
             </div>
           </div>
         </section>
