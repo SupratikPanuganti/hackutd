@@ -53,7 +53,7 @@ export class SentimentService extends EventEmitter {
         DEBUG_WINDOW: 'true',  // Show debug window
         NIM_API_KEY: process.env.NIM_API_KEY || '',
         OPENAI_KEY: process.env.OPENAI_KEY || process.env.OPENAI_API_KEY || '',
-        USE_OPENAI: 'true',  // Use OpenAI instead of NVIDIA for now
+        USE_OPENAI: process.env.USE_OPENAI || 'false',  // Set to 'true' to use OpenAI, 'false' for NVIDIA
       },
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: process.cwd(),
