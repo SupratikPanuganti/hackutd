@@ -141,13 +141,23 @@ export const TopNav = () => {
                 )}
               />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="inline-flex rounded-xl relative z-20 transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 border-white/20 bg-white/10 text-white backdrop-blur-sm"
-            >
-              Sign In
-            </Button>
+            <Link to="/login" className="relative z-20">
+              <Button
+                variant="outline"
+                size="sm"
+                className="inline-flex rounded-xl relative z-20 transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 border-white/20 bg-white/10 text-white backdrop-blur-sm"
+              >
+                Sign In
+              </Button>
+            </Link>
+            <Link to="/signup" className="relative z-20">
+              <Button
+                size="sm"
+                className="inline-flex rounded-xl relative z-20 transition-all duration-300 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md shadow-lg hover:shadow-xl"
+              >
+                Sign Up
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -224,15 +234,26 @@ export const TopNav = () => {
               />
             </div>
 
-            {/* Sign In */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full rounded-xl relative z-20 transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 border-white/20 bg-white/10 text-white backdrop-blur-sm py-3"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Sign In
-            </Button>
+            {/* Sign In / Sign Up */}
+            <div className="flex gap-2">
+              <Link to="/login" className="flex-1 relative z-20" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full rounded-xl relative z-20 transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 border-white/20 bg-white/10 text-white backdrop-blur-sm py-3"
+                >
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/signup" className="flex-1 relative z-20" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  size="sm"
+                  className="w-full rounded-xl relative z-20 transition-all duration-300 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md shadow-lg hover:shadow-xl py-3"
+                >
+                  Sign Up
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

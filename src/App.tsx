@@ -11,6 +11,8 @@ import Devices from "./pages/Devices";
 import NetworkStatus from "./pages/NetworkStatus";
 import Help from "./pages/Help";
 import Assist from "./pages/Assist";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const AppContent = () => {
         <Route path="/status" element={<NetworkStatus />} />
         <Route path="/help" element={<Help />} />
         <Route path="/assist" element={<Assist />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
