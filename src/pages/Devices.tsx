@@ -1,35 +1,95 @@
+import { useState } from "react";
 import { TopNav } from "@/components/TopNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { devices } from "@/lib/mockData";
+import { cn } from "@/lib/utils";
+
+type FilterType = "all" | "iOS" | "Android" | "5G" | "eSIM";
 
 const Devices = () => {
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+
+  const filteredDevices = devices.filter((device) => {
+    switch (activeFilter) {
+      case "iOS":
+        return device.os === "iOS";
+      case "Android":
+        return device.os === "Android";
+      case "5G":
+        return device.supports5G;
+      case "eSIM":
+        return device.supportsESIM;
+      default:
+        return true;
+    }
+  });
+
   return (
     <div className="min-h-screen flex flex-col bg-[#5A0040]">
       <TopNav />
-      
+
       <main className="flex-1 relative">
+        {/* Filters */}
         <section className="py-12">
           <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-lg">Our Devices</h1>
-              <p className="text-xl text-white/90 drop-shadow-md">
-                Choose from the latest smartphones, all 5G ready
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Filters */}
-        <section className="py-8">
-          <div className="container mx-auto px-4">
             <div className="flex flex-wrap gap-2 justify-center">
-              <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl">All Devices</Button>
-              <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl">iOS</Button>
-              <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl">Android</Button>
-              <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl">5G</Button>
-              <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl">eSIM</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveFilter("all")}
+                className={cn(
+                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
+                  activeFilter === "all" && "bg-white/30 border-white/40"
+                )}
+              >
+                All Devices
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveFilter("iOS")}
+                className={cn(
+                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
+                  activeFilter === "iOS" && "bg-white/30 border-white/40"
+                )}
+              >
+                iOS
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveFilter("Android")}
+                className={cn(
+                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
+                  activeFilter === "Android" && "bg-white/30 border-white/40"
+                )}
+              >
+                Android
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveFilter("5G")}
+                className={cn(
+                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
+                  activeFilter === "5G" && "bg-white/30 border-white/40"
+                )}
+              >
+                5G
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveFilter("eSIM")}
+                className={cn(
+                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
+                  activeFilter === "eSIM" && "bg-white/30 border-white/40"
+                )}
+              >
+                eSIM
+              </Button>
             </div>
           </div>
         </section>
@@ -38,7 +98,7 @@ const Devices = () => {
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {devices.map((device) => (
+              {filteredDevices.map((device) => (
                 <Card key={device.id} className="hover:shadow-2xl transition-all duration-300 rounded-2xl border-white/20 shadow-xl backdrop-blur-xl bg-white/10 hover:bg-white/15 hover:scale-105">
                   <CardHeader>
                     <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl mb-4 flex items-center justify-center border border-white/20">

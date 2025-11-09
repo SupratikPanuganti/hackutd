@@ -63,19 +63,7 @@ const Help = () => {
       <TopNav />
 
       <main className="flex-1 relative pb-16">
-        <section className="pt-24 pb-12">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto">
-              <div className="text-6xl mb-6">💬</div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-lg">AI Support Assistant</h1>
-              <p className="text-xl text-white/90 mb-8 drop-shadow-md">
-                Get instant help with network issues, device setup, and troubleshooting
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="py-8">
+        <section className="py-8 pt-24">
           <div className="container mx-auto px-4 space-y-8">
             <Card className="rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10">
               <CardHeader className="pb-2 md:pb-4">

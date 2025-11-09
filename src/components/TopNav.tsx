@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useCallback, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAgentic } from "@/contexts/AgenticContext";
@@ -128,16 +129,18 @@ export const TopNav = () => {
                 Positive
               </span>
             </div>
-            <Button
-              variant={isEnabled ? "secondary" : "outline"}
-              size="sm"
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 relative z-20 transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 border-white/20 bg-white/10 text-white backdrop-blur-sm"
-              onClick={handleAgentToggle}
-              disabled={isTogglingAgent}
-            >
-              <span className="text-xs">AI</span>
-              {isEnabled ? "Off" : "On"}
-            </Button>
+            <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm border">
+              <span className="text-xs font-medium">Agent Mode</span>
+              <Switch
+                checked={isEnabled}
+                onCheckedChange={handleAgentToggle}
+                disabled={isTogglingAgent}
+                className={cn(
+                  "data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500",
+                  "border-2 border-white/30"
+                )}
+              />
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -205,19 +208,21 @@ export const TopNav = () => {
             </div>
 
             {/* AI Toggle */}
-            <Button
-              variant={isEnabled ? "secondary" : "outline"}
-              size="sm"
-              className="w-full justify-start inline-flex items-center gap-2 rounded-xl relative z-20 transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 border-white/20 bg-white/10 text-white backdrop-blur-sm py-3"
-              onClick={() => {
-                handleAgentToggle();
-                setMobileMenuOpen(false);
-              }}
-              disabled={isTogglingAgent}
-            >
-              <span>AI</span>
-              {isEnabled ? "Disable" : "Enable"}
-            </Button>
+            <div className="w-full justify-between inline-flex items-center gap-2 rounded-xl relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm py-3 px-4 border">
+              <span className="font-medium">Agent Mode</span>
+              <Switch
+                checked={isEnabled}
+                onCheckedChange={() => {
+                  handleAgentToggle();
+                  setMobileMenuOpen(false);
+                }}
+                disabled={isTogglingAgent}
+                className={cn(
+                  "data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500",
+                  "border-2 border-white/30"
+                )}
+              />
+            </div>
 
             {/* Sign In */}
             <Button
