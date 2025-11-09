@@ -11,8 +11,77 @@ import LiquidEther from "@/components/LiquidEther";
 
 type FilterType = "all" | "iOS" | "Android" | "5G" | "eSIM";
 
+/* Customer-relevant bullets (positive tone) */
+const deviceKeyFeatures: Record<string, string[]> = {
+  "Samsung Galaxy A54": [
+    '6.4" AMOLED 120 Hz — smooth & bright',
+    "50 MP main camera with OIS",
+    "5,000 mAh battery for all-day use",
+    "Expandable storage (microSD)",
+    "5G + IP67 water resistance",
+  ],
+  "iPhone 15": [
+    '6.1" Super Retina OLED with Dynamic Island',
+    "48 MP main camera + great 4K video",
+    "A16 Bionic — fast for years",
+    "USB-C + MagSafe wireless charging",
+    "5G + long iOS support",
+  ],
+  "OnePlus 12": [
+    '6.82" 120 Hz AMOLED — ultra bright',
+    "Snapdragon 8 Gen 3 flagship power",
+    "5,400 mAh + super-fast charging",
+    "Triple camera with 3× optical zoom",
+    "5G + Wi-Fi 7 + in-display fingerprint",
+  ],
+  "Google Pixel 9": [
+    '6.3" 120 Hz OLED display',
+    "Tensor G4 with on-device AI",
+    "Pixel photo quality with Night Sight",
+    "Face + fingerprint unlock",
+    "7 years OS & security updates",
+  ],
+  "Samsung Galaxy S25": [
+    '6.2" AMOLED 120 Hz display',
+    "Next-gen flagship chipset",
+    "Pro triple camera with 3× optical zoom",
+    "Galaxy AI features built in",
+    "5G + Wi-Fi 7 + IP68 durability",
+  ],
+  "iPhone 16 Pro": [
+    '6.3" ProMotion 120 Hz OLED',
+    "A18 Pro — industry-leading performance",
+    "48 MP main + 5× telephoto zoom",
+    "Titanium build + Capture Button",
+    "USB-C, MagSafe, 5G",
+  ],
+};
+
+/* Fallback bullets if device name isn't mapped */
+function buildFallbackFeatures(device: Device): string[] {
+  const ios = device.os?.toLowerCase().includes("ios") ?? false;
+  const base: string[] = ios
+    ? [
+      "Beautiful OLED display",
+      "Fantastic photos & 4K video",
+      "Fast performance that lasts years",
+      "MagSafe + USB-C charging",
+      "5G connectivity",
+    ]
+    : [
+      "Vivid 120 Hz display",
+      "Sharp photos with night mode",
+      "All-day battery life",
+      "Fast charging over USB-C",
+      "5G connectivity",
+    ];
+  if (!device.supports_5g) return base.filter((b) => !b.includes("5G"));
+  return base;
+}
+
 const Devices = () => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null); // which card shows the overlay
 
   const filters = useMemo(() => {
     switch (activeFilter) {
@@ -38,7 +107,7 @@ const Devices = () => {
   const devices: Device[] = data ?? [];
   const isMockData = useMemo(
     () => devices.length > 0 && devices.every((device) => device._fromDatabase === false),
-    [devices],
+    [devices]
   );
 
   return (
@@ -46,7 +115,7 @@ const Devices = () => {
       {/* Full Page Three.js Background */}
       <div className="fixed inset-0 z-0 bg-black">
         <LiquidEther
-          colors={['#000000', '#5A0040', '#E20074']}
+          colors={["#000000", "#5A0040", "#E20074"]}
           mouseForce={20}
           cursorSize={100}
           isViscous={false}
@@ -71,168 +140,198 @@ const Devices = () => {
         <TopNav />
 
         <main className="flex-1 relative">
-        {/* Filters */}
-        <section className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-wrap gap-2 justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveFilter("all")}
-                className={cn(
-                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
-                  activeFilter === "all" && "bg-white/30 border-white/40"
-                )}
-              >
-                All Devices
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveFilter("iOS")}
-                className={cn(
-                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
-                  activeFilter === "iOS" && "bg-white/30 border-white/40"
-                )}
-              >
-                iOS
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveFilter("Android")}
-                className={cn(
-                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
-                  activeFilter === "Android" && "bg-white/30 border-white/40"
-                )}
-              >
-                Android
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveFilter("5G")}
-                className={cn(
-                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
-                  activeFilter === "5G" && "bg-white/30 border-white/40"
-                )}
-              >
-                5G
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveFilter("eSIM")}
-                className={cn(
-                  "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
-                  activeFilter === "eSIM" && "bg-white/30 border-white/40"
-                )}
-              >
-                eSIM
-              </Button>
+          {/* Filters */}
+          <section className="py-12">
+            <div className="container mx-auto px-4">
+              <div className="flex flex-wrap gap-2 justify-center">
+                {(["all", "iOS", "Android", "5G", "eSIM"] as FilterType[]).map((f) => (
+                  <Button
+                    key={f}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveFilter(f)}
+                    className={cn(
+                      "bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm rounded-xl",
+                      activeFilter === f && "bg-white/30 border-white/40"
+                    )}
+                  >
+                    {f === "all" ? "All Devices" : f}
+                  </Button>
+                ))}
+              </div>
+              {isMockData && (
+                <div className="mt-6 mx-auto max-w-2xl">
+                  <Card className="border-yellow-400/30 bg-yellow-500/10 text-white">
+                    <CardContent className="py-4">
+                      <p className="text-sm">
+                        Unable to reach Supabase. Showing mock devices instead. Verify your Supabase credentials to see
+                        live inventory.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
-            {isMockData && (
-              <div className="mt-6 mx-auto max-w-2xl">
-                <Card className="border-yellow-400/30 bg-yellow-500/10 text-white">
-                  <CardContent className="py-4">
-                    <p className="text-sm">
-                      Unable to reach Supabase. Showing mock devices instead. Verify your Supabase credentials to see live inventory.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-        </section>
+          </section>
 
-        {/* Device Grid */}
-        <section className="py-8">
-          <div className="container mx-auto px-4">
-            {(isLoading || isFetching) && (
-              <div className="flex justify-center mb-8">
-                <Card className="border-white/20 bg-white/5 text-white backdrop-blur-md px-6 py-4">
-                  <span>{isLoading ? "Loading devices…" : "Updating devices…"}</span>
-                </Card>
-              </div>
-            )}
+          {/* Device Grid */}
+          <section className="py-8">
+            <div className="container mx-auto px-4">
+              {(isLoading || isFetching) && (
+                <div className="flex justify-center mb-8">
+                  <Card className="border-white/20 bg-white/5 text-white backdrop-blur-md px-6 py-4">
+                    <span>{isLoading ? "Loading devices…" : "Updating devices…"}</span>
+                  </Card>
+                </div>
+              )}
 
-            {isError && (
-              <div className="flex justify-center mb-8">
-                <Card className="border-red-400/40 bg-red-500/10 text-white backdrop-blur-md px-6 py-4">
-                  <span>Failed to load devices: {(error as Error).message}</span>
-                </Card>
-              </div>
-            )}
+              {isError && (
+                <div className="flex justify-center mb-8">
+                  <Card className="border-red-400/40 bg-red-500/10 text-white backdrop-blur-md px-6 py-4">
+                    <span>Failed to load devices: {(error as Error).message}</span>
+                  </Card>
+                </div>
+              )}
 
-            {!isLoading && !isError && (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                {devices.map((device) => {
-                  const price = device.price !== null ? `$${device.price}` : "Contact sales";
-                  const deviceImage = device.devices_pics_url || device.image_url || "/placeholder.svg";
+              {!isLoading && !isError && (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                  {devices.map((device) => {
+                    const price = device.price !== null ? `$${device.price}` : "Contact sales";
+                    const deviceImage = device.devices_pics_url || device.image_url || "/placeholder.svg";
+                    const isExpanded = expandedId === device.id;
+                    const features = deviceKeyFeatures[device.name] ?? buildFallbackFeatures(device);
 
-                  return (
-                    <Card key={device.id} className="hover:shadow-2xl transition-all duration-300 rounded-2xl border-white/20 shadow-xl backdrop-blur-xl bg-white/10 hover:bg-white/15 hover:scale-105">
-                      <CardHeader>
-                        <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl mb-4 flex items-center justify-center border border-white/20 overflow-hidden relative">
-                          <img 
-                            src={deviceImage} 
-                            alt={device.name} 
-                            className="object-contain w-full h-full p-6"
-                            loading="lazy" 
-                          />
-                        </div>
-                        <CardTitle className="text-xl text-white drop-shadow-md flex items-center gap-2">
-                          {device.name}
-                          {device._fromDatabase && (
-                            <Badge variant="outline" className="bg-green-500/20 border-green-500/40 text-green-100">
-                              Live
+                    return (
+                      <Card
+                        key={device.id}
+                        className="hover:shadow-2xl transition-all duration-300 rounded-2xl border-white/20 shadow-xl backdrop-blur-xl bg-white/10 hover:bg-white/15 hover:scale-105"
+                      >
+                        <CardHeader>
+                          {/* Static image + FLIP-IN overlay (only overlay rotates) */}
+                          <div className="[perspective:1200px]">
+                            <div className="relative aspect-square rounded-2xl mb-4 border border-white/20 overflow-hidden">
+                              {/* IMAGE stays static */}
+                              <div className="absolute inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-0">
+                                <img
+                                  src={deviceImage}
+                                  alt={device.name}
+                                  className="object-contain w-full h-full p-6"
+                                  loading="lazy"
+                                />
+                              </div>
+
+                              {/* OVERLAY — white info card flips in over the image */}
+                              <div
+                                className={cn(
+                                  "absolute inset-0 rounded-2xl bg-white p-6 flex flex-col shadow-2xl z-10",
+                                  // Allow 3D effect; hide the card's back to avoid mirrored text
+                                  "[transform-style:preserve-3d] [backface-visibility:hidden]",
+                                  // Flip in from the bottom edge
+                                  "origin-bottom transition-transform duration-500 ease-out",
+                                  isExpanded ? "[transform:rotateX(0deg)]" : "[transform:rotateX(90deg)]",
+                                  // Avoid capturing clicks when hidden
+                                  !isExpanded && "pointer-events-none"
+                                )}
+                                aria-hidden={!isExpanded}
+                              >
+                                <h4 className="text-zinc-900 font-semibold mb-2">Key features</h4>
+                                <ul
+                                  className={cn(
+                                    "text-sm text-zinc-800 space-y-2 overflow-auto",
+                                    "transition-opacity duration-300",
+                                    isExpanded ? "opacity-100 delay-150" : "opacity-0"
+                                  )}
+                                >
+                                  {features.map((f, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-zinc-700 shrink-0" />
+                                      <span>{f}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+
+                          <CardTitle className="text-xl text-white drop-shadow-md flex items-center gap-2">
+                            {device.name}
+                            {device._fromDatabase && (
+                              <Badge
+                                variant="outline"
+                                className="bg-green-500/20 border-green-500/40 text-green-100"
+                              >
+                                Live
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription className="text-2xl font-bold text-white mt-2 drop-shadow-md">
+                            {price}
+                          </CardDescription>
+                        </CardHeader>
+
+                        <CardContent>
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            <Badge
+                              variant="secondary"
+                              className="rounded-lg bg-white/20 text-white border-white/20 backdrop-blur-sm"
+                            >
+                              {device.os}
                             </Badge>
-                          )}
-                        </CardTitle>
-                        <CardDescription className="text-2xl font-bold text-white mt-2 drop-shadow-md">
-                          {price}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          <Badge variant="secondary" className="rounded-lg bg-white/20 text-white border-white/20 backdrop-blur-sm">{device.os}</Badge>
-                          {device.supports_5g && (
-                            <Badge variant="outline" className="rounded-lg bg-white/10 text-white border-white/20 backdrop-blur-sm">
-                              5G
-                            </Badge>
-                          )}
-                          {device.supports_esim && (
-                            <Badge variant="outline" className="rounded-lg bg-white/10 text-white border-white/20 backdrop-blur-sm">
-                              eSIM
-                            </Badge>
-                          )}
-                        </div>
-                        <Button className="w-full rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/30 backdrop-blur-sm" variant="outline">
-                          View Details
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </section>
+                            {device.supports_5g && (
+                              <Badge
+                                variant="outline"
+                                className="rounded-lg bg-white/10 text-white border-white/20 backdrop-blur-sm"
+                              >
+                                5G
+                              </Badge>
+                            )}
+                            {device.supports_esim && (
+                              <Badge
+                                variant="outline"
+                                className="rounded-lg bg-white/10 text-white border-white/20 backdrop-blur-sm"
+                              >
+                                eSIM
+                              </Badge>
+                            )}
+                          </div>
 
-        {/* Knowledge Base Info */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto text-center">
-              <Card className="rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10 p-8">
-                <h2 className="text-3xl font-bold mb-4 text-white drop-shadow-lg">Need Help Setting Up?</h2>
-                <p className="text-lg text-white/90 mb-6 drop-shadow-md">
-                  Check out our device setup guides for step-by-step instructions on configuring Wi-Fi Calling, APN settings, and more.
-                </p>
-                <Button size="lg" className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md rounded-xl shadow-lg hover:shadow-xl">View Setup Guides</Button>
-              </Card>
+                          {/* This button toggles ONLY the overlay flip */}
+                          <Button
+                            className="w-full rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/30 backdrop-blur-sm"
+                            variant="outline"
+                            onClick={() => setExpandedId((cur) => (cur === device.id ? null : device.id))}
+                          >
+                            {isExpanded ? "Hide Details" : "View Details"}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        </section>
+          </section>
+
+          {/* Knowledge Base Info */}
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              <div className="max-w-3xl mx-auto text-center">
+                <Card className="rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10 p-8">
+                  <h2 className="text-3xl font-bold mb-4 text-white drop-shadow-lg">Need Help Setting Up?</h2>
+                  <p className="text-lg text-white/90 mb-6 drop-shadow-md">
+                    Check out our device setup guides for step-by-step instructions on configuring Wi-Fi Calling, APN
+                    settings, and more.
+                  </p>
+                  <Button
+                    size="lg"
+                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md rounded-xl shadow-lg hover:shadow-xl"
+                  >
+                    View Setup Guides
+                  </Button>
+                </Card>
+              </div>
+            </div>
+          </section>
         </main>
       </div>
     </div>
