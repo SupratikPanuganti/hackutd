@@ -6,6 +6,7 @@ import { TicketDialog } from "@/components/assist/TicketDialog";
 import { ConversationPanel } from "@/components/assist/ConversationPanel";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { Badge } from "@/components/ui/badge";
+import LiquidEther from "@/components/LiquidEther";
 
 const Help = () => {
   const { sessionId } = useAgentic();
@@ -63,10 +64,35 @@ const Help = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#5A0040]">
-      <TopNav />
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Full Page Three.js Background */}
+      <div className="fixed inset-0 z-0 bg-black">
+        <LiquidEther
+          colors={['#000000', '#5A0040', '#E20074']}
+          mouseForce={20}
+          cursorSize={100}
+          isViscous={false}
+          viscous={30}
+          iterationsViscous={32}
+          iterationsPoisson={32}
+          resolution={0.5}
+          isBounce={false}
+          autoDemo={true}
+          autoSpeed={0.5}
+          autoIntensity={2.2}
+          takeoverDuration={0.25}
+          autoResumeDelay={3000}
+          autoRampDuration={0.6}
+        />
+      </div>
 
-      <main className="flex-1 relative pb-16">
+      {/* Gradient Overlay for Depth */}
+      <div className="fixed inset-0 z-[1] bg-gradient-to-b from-[#5A0040]/20 via-transparent to-[#E20074]/30 pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col">
+        <TopNav />
+
+        <main className="flex-1 relative pb-16">
         {/* AI Chatbot */}
         <section className="py-8 pt-24" ref={conversationRef}>
           <div className="container mx-auto px-4">
@@ -165,10 +191,11 @@ const Help = () => {
             </div>
           </div>
         </section>
-      </main>
+        </main>
+      </div>
 
-      <TicketDialog 
-        open={ticketDialogOpen} 
+      <TicketDialog
+        open={ticketDialogOpen}
         onOpenChange={setTicketDialogOpen}
         initialIssue={ticketInitialIssue}
       />
