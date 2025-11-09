@@ -23,9 +23,12 @@ export const AgentOnboardingDialog = () => {
     // Check if user has seen the onboarding before
     const hasSeenOnboarding = localStorage.getItem(AGENT_ONBOARDING_KEY);
 
+    console.log('[AgentOnboarding] Has seen onboarding:', hasSeenOnboarding);
+
     if (!hasSeenOnboarding) {
       // Show dialog after a short delay for better UX
       const timer = setTimeout(() => {
+        console.log('[AgentOnboarding] Showing onboarding dialog');
         setIsOpen(true);
       }, 1500);
 

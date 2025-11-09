@@ -196,18 +196,23 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const connectWebSocket = () => {
       try {
+        console.log('[Sentiment] Connecting to WebSocket:', `${BACKEND_WS_URL}/sentiment`);
         const ws = new WebSocket(`${BACKEND_WS_URL}/sentiment`);
         wsRef.current = ws;
 
         ws.onopen = () => {
+          console.log('✅ [Sentiment] WebSocket connected successfully');
           logVapiDebug('Sentiment WebSocket connected - Agent Mode is ON');
           // Auto-start sentiment service when Agent Mode is enabled
-          ws.send(JSON.stringify({ type: 'start', cameraIndex: 0 }));
+          const startMessage = JSON.stringify({ type: 'start', cameraIndex: 0 });
+          console.log('[Sentiment] Sending start command:', startMessage);
+          ws.send(startMessage);
         };
 
         ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
+            console.log('[Sentiment] Received message:', message);
 
             if (message.type === 'sentiment') {
               const sentimentData: SentimentData = {
@@ -215,6 +220,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
                 label: getSentimentLabel(message.data.value),
               };
 
+              console.log('😊 [Sentiment] Data received:', sentimentData);
               // If we're receiving sentiment data, the service must be running
               setIsSentimentServiceRunning(true);
               setCurrentSentiment(sentimentData);
@@ -229,23 +235,29 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
                 calculateTrend();
               }
             } else if (message.type === 'status') {
+              console.log('[Sentiment] Status update:', message.data);
               setIsSentimentServiceRunning(message.data.running);
             }
           } catch (error) {
+            console.error('❌ [Sentiment] Error parsing message:', error);
             logVapiWarn('Error parsing sentiment WebSocket message', error);
           }
         };
 
         ws.onerror = (error) => {
+          console.error('❌ [Sentiment] WebSocket error:', error);
           logVapiWarn('Sentiment WebSocket error', error);
         };
 
-        ws.onclose = () => {
+        ws.onclose = (event) => {
+          console.log('[Sentiment] WebSocket closed:', event.code, event.reason);
           logVapiDebug('Sentiment WebSocket closed');
           wsRef.current = null;
+          setIsSentimentServiceRunning(false);
 
           // Attempt reconnect after 5 seconds if Agent Mode still enabled
           if (isEnabled) {
+            console.log('[Sentiment] Will attempt reconnect in 5 seconds...');
             reconnectTimeoutRef.current = window.setTimeout(() => {
               logVapiDebug('Attempting to reconnect sentiment WebSocket');
               connectWebSocket();
@@ -253,6 +265,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
           }
         };
       } catch (error) {
+        console.error('❌ [Sentiment] Failed to create WebSocket:', error);
         logVapiWarn('Failed to connect sentiment WebSocket', error);
       }
     };

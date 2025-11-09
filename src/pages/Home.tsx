@@ -37,6 +37,21 @@ SELLING TIPS:
     updateScreenContext({ visibleContent: content });
   }, [updateScreenContext]);
 
+  // Debug helper: Add to window for testing
+  useEffect(() => {
+    // @ts-ignore - Debug helper
+    window.resetOnboarding = () => {
+      localStorage.removeItem('tcare_agent_onboarding_seen');
+      console.log('✅ Onboarding reset! Refresh the page to see the dialog again.');
+    };
+    // @ts-ignore - Debug helper
+    window.resetAgentMode = () => {
+      localStorage.removeItem('tcare_agentic_mode');
+      console.log('✅ Agent mode reset! Refresh the page.');
+    };
+    console.log('💡 Debug helpers available: resetOnboarding(), resetAgentMode()');
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Full Page Three.js Background */}
