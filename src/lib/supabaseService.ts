@@ -1,5 +1,5 @@
-import { supabase, isSupabaseConfigured, ServicePlan, Device } from './supabase';
-import { plans, devices, deviceImages } from './mockData';
+import { supabase, isSupabaseConfigured, ServicePlan, Device, Tower, StatusSnapshot } from './supabase';
+import { plans, devices, deviceImages, towers } from './mockData';
 
 // Service Plans API
 export const getServicePlans = async (): Promise<ServicePlan[]> => {
@@ -241,5 +241,89 @@ export const getDeviceById = async (id: string): Promise<Device | null> => {
     console.error('Error fetching device:', error);
     return null;
   }
+};
+
+// Towers API
+export const getTowers = async (): Promise<Tower[]> => {
+  console.log('🔄 getTowers() called - Checking Supabase configuration...');
+
+  // Always try Supabase first
+  try {
+    console.log('🌐 Attempting to fetch towers from Supabase...');
+    const { data, error } = await supabase
+      .from('status_snapshots')
+      .select('*')
+      .not('tower_id', 'is', null)
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
+      .order('created_at', { ascending: false });
+
+    console.log('📦 Supabase response:', { dataLength: data?.length || 0, error: error?.message || null });
+
+    // If we got data from Supabase, transform it to Tower format
+    if (data && data.length > 0 && !error) {
+      console.log('✅ SUCCESS: Loaded', data.length, 'towers from Supabase database!');
+      
+      // Get unique towers (by tower_id), taking the most recent snapshot for each tower
+      const towerMap = new Map<string, StatusSnapshot>();
+      data.forEach((snapshot: StatusSnapshot) => {
+        if (snapshot.tower_id && snapshot.latitude && snapshot.longitude) {
+          const existing = towerMap.get(snapshot.tower_id);
+          if (!existing || new Date(snapshot.created_at) > new Date(existing.created_at)) {
+            towerMap.set(snapshot.tower_id, snapshot);
+          }
+        }
+      });
+
+      const uniqueTowers: Tower[] = Array.from(towerMap.values()).map((snapshot: StatusSnapshot) => ({
+        id: snapshot.tower_id!,
+        region: snapshot.region,
+        health: snapshot.health as 'ok' | 'degraded',
+        lat: snapshot.latitude!,
+        lng: snapshot.longitude!,
+        tower_id: snapshot.tower_id!,
+        network_happiness_score: snapshot.network_happiness_score || undefined,
+        eta_minutes: snapshot.eta_minutes || undefined,
+        sparkline: snapshot.sparkline || undefined,
+        _fromDatabase: true,
+      }));
+
+      console.log('📊 Unique towers found:', uniqueTowers.length);
+      return uniqueTowers;
+    }
+
+    // If there's an error but Supabase is configured, log it
+    if (error) {
+      if (isSupabaseConfigured()) {
+        console.error('❌ ERROR: Supabase is configured but returned error:', error.message);
+        console.error('❌ Full error:', error);
+      } else {
+        console.warn('⚠️ Supabase not configured (missing env variables), using mock data');
+      }
+    }
+
+    // If Supabase is not configured or returned no data, use mock data
+    if (!isSupabaseConfigured()) {
+      console.warn('⚠️ WARNING: Supabase not configured - VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY missing');
+      console.warn('⚠️ Using mock data instead. To use database, create .env file with Supabase credentials.');
+    } else if (data && data.length === 0) {
+      console.warn('⚠️ WARNING: Supabase returned empty result (no towers found)');
+      console.warn('⚠️ Make sure you ran the SQL script to insert towers. Using mock data.');
+    }
+  } catch (error: any) {
+    console.error('❌ EXCEPTION: Failed to fetch from Supabase:', error?.message || error);
+    console.error('❌ Error details:', error);
+  }
+
+  // Fallback to mock data
+  console.log('📦 FALLBACK: Using mock data for towers (', towers.length, 'towers)');
+  return towers.map(tower => ({
+    id: tower.id,
+    region: tower.region,
+    health: tower.health as 'ok' | 'degraded',
+    lat: tower.lat,
+    lng: tower.lng,
+    _fromDatabase: false,
+  }));
 };
 

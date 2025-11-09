@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { TopNav } from "@/components/TopNav";
 import { Badge } from "@/components/ui/badge";
-import { incidents, towers } from "@/lib/mockData";
+import { incidents } from "@/lib/mockData";
+import { getTowers } from "@/lib/supabaseService";
+import { Tower } from "@/lib/supabase";
 import { MapboxMap } from "@/components/MapboxMap";
 
 interface TowerDetails {
@@ -14,6 +17,12 @@ interface TowerDetails {
 
 const NetworkStatus = () => {
   const [selectedTower, setSelectedTower] = useState<TowerDetails | null>(null);
+  
+  // Fetch towers from database
+  const { data: towers = [] } = useQuery<Tower[]>({
+    queryKey: ['towers'],
+    queryFn: getTowers,
+  });
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-black">

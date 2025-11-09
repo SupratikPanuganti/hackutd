@@ -73,6 +73,34 @@ export interface Device {
   _fromDatabase?: boolean;
 }
 
+export interface Tower {
+  id: string;
+  region: string;
+  health: 'ok' | 'degraded';
+  lat: number;
+  lng: number;
+  tower_id?: string;
+  network_happiness_score?: number;
+  eta_minutes?: number | null;
+  sparkline?: number[];
+  _fromDatabase?: boolean;
+}
+
+export interface StatusSnapshot {
+  id: string;
+  session_id: string | null;
+  region: string;
+  tower_id: string | null;
+  health: string;
+  eta_minutes: number | null;
+  network_happiness_score: number | null;
+  sparkline: number[] | null;
+  source_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+}
+
 export interface User {
   id: string;
   clerk_user_id: string;

@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { towers } from "@/lib/mockData";
+import { useQuery } from "@tanstack/react-query";
+import { getTowers } from "@/lib/supabaseService";
+import { Tower } from "@/lib/supabase";
 import { getMapboxToken, hasCustomMapboxToken } from "@/lib/mapbox";
 
 const MAPBOX_TOKEN = getMapboxToken();
@@ -9,14 +11,59 @@ const USING_CUSTOM_TOKEN = hasCustomMapboxToken();
 
 interface MapboxMapProps {
   className?: string;
-  onTowerClick?: (tower: typeof towers[0]) => void;
+  onTowerClick?: (tower: Tower) => void;
 }
 
 export const MapboxMap = ({ className, onTowerClick }: MapboxMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  // Use Map to track markers by tower ID to prevent duplicates
+  const markersMapRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const towersProcessedRef = useRef<Set<string>>(new Set());
+  const mapInitializedRef = useRef(false);
 
+  // Fetch towers from database
+  const { data: towers = [] } = useQuery<Tower[]>({
+    queryKey: ['towers'],
+    queryFn: getTowers,
+  });
+
+  // Function to add towers to map (only add new ones, don't recreate existing)
+  // This function is stable and won't cause re-renders
+  const addTowersToMapRef = useRef<(towersToAdd: Tower[]) => void>();
+  
+  addTowersToMapRef.current = (towersToAdd: Tower[]) => {
+    if (!map.current || !mapInitializedRef.current) return;
+
+    const currentTowerIds = new Set(towersToAdd.map(t => t.id));
+    
+    // Remove markers for towers that no longer exist
+    markersMapRef.current.forEach((marker, towerId) => {
+      if (!currentTowerIds.has(towerId)) {
+        marker.remove();
+        markersMapRef.current.delete(towerId);
+        towersProcessedRef.current.delete(towerId);
+      }
+    });
+
+    // Add new towers (only if they haven't been added yet)
+    towersToAdd.forEach((tower) => {
+      // Only add if this tower hasn't been processed yet
+      if (!towersProcessedRef.current.has(tower.id)) {
+        try {
+          const marker = addTowerMarker(tower, map.current!, onTowerClick);
+          markersMapRef.current.set(tower.id, marker);
+          towersProcessedRef.current.add(tower.id);
+        } catch (error) {
+          console.error(`Failed to add marker for tower ${tower.id}:`, error);
+        }
+      }
+    });
+
+    console.log(`✅ Map has ${markersMapRef.current.size} tower markers (fixed to coordinates)`);
+  };
+
+  // Initialize map (only once)
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
@@ -34,12 +81,13 @@ export const MapboxMap = ({ className, onTowerClick }: MapboxMapProps) => {
       const nav = new mapboxgl.NavigationControl();
       map.current.addControl(nav, "top-right");
 
-      // Add tower markers after map loads
-      map.current.on("load", () => {
-        towers.forEach((tower) => {
-          const marker = addTowerMarker(tower, map.current!, onTowerClick);
-          markersRef.current.push(marker);
-        });
+      // Wait for map to load, then mark as initialized
+      map.current.once("load", () => {
+        mapInitializedRef.current = true;
+        // Markers will be added by the towers effect
+        if (towers.length > 0 && addTowersToMapRef.current) {
+          addTowersToMapRef.current(towers);
+        }
       });
 
       // Log any errors
@@ -51,19 +99,50 @@ export const MapboxMap = ({ className, onTowerClick }: MapboxMapProps) => {
     }
 
     return () => {
-      markersRef.current.forEach(marker => marker.remove());
-      map.current?.remove();
+      // Clean up all markers
+      markersMapRef.current.forEach(marker => marker.remove());
+      markersMapRef.current.clear();
+      towersProcessedRef.current.clear();
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+        mapInitializedRef.current = false;
+      }
     };
-  }, [onTowerClick]);
+  }, []);
+
+  // Update markers when towers change (but only if map is initialized)
+  useEffect(() => {
+    if (!map.current || !mapInitializedRef.current || !addTowersToMapRef.current) {
+      return;
+    }
+
+    if (towers.length === 0) {
+      return;
+    }
+
+    // Only update if we have new towers or towers have changed
+    const currentTowerIds = new Set(towers.map(t => t.id));
+    const processedTowerIds = towersProcessedRef.current;
+    
+    // Check if we need to update (new towers or removed towers)
+    const hasNewTowers = towers.some(t => !processedTowerIds.has(t.id));
+    const hasRemovedTowers = Array.from(processedTowerIds).some(id => !currentTowerIds.has(id));
+    const countMismatch = markersMapRef.current.size !== towers.length;
+
+    if (hasNewTowers || hasRemovedTowers || countMismatch) {
+      addTowersToMapRef.current(towers);
+    }
+  }, [towers, onTowerClick]);
 
   return <div ref={mapContainer} className={className} />;
 };
 
 // Helper function to add tower markers
 const addTowerMarker = (
-  tower: typeof towers[0], 
+  tower: Tower, 
   mapInstance: mapboxgl.Map,
-  onTowerClick?: (tower: typeof towers[0]) => void
+  onTowerClick?: (tower: Tower) => void
 ) => {
   // Create custom marker element with glassmorphic design
   const el = document.createElement("div");
@@ -74,8 +153,9 @@ const addTowerMarker = (
   el.style.display = "flex";
   el.style.alignItems = "center";
   el.style.justifyContent = "center";
-  el.style.transition = "all 0.3s ease";
-  el.style.position = "relative";
+  el.style.transition = "transform 0.2s ease, box-shadow 0.2s ease"; // Only animate transform and shadow
+  el.style.pointerEvents = "auto"; // Ensure marker is clickable
+  // Note: Mapbox handles positioning, don't set position style
 
   // Create the inner circle (glassmorphic)
   const inner = document.createElement("div");
@@ -177,12 +257,19 @@ const addTowerMarker = (
     </div>
   `);
 
-  // Add marker to map
-  const marker = new mapboxgl.Marker(el)
-    .setLngLat([tower.lng, tower.lat])
+  // Create marker with fixed coordinates
+  // Mapbox markers automatically stay fixed to their lat/lng coordinates
+  // They update their screen position automatically during zoom/pan
+  const marker = new mapboxgl.Marker({
+    element: el,
+    anchor: 'center', // Center the marker on the coordinates
+  })
+    .setLngLat([tower.lng, tower.lat]) // Set fixed geographic coordinates
     .setPopup(popup)
     .addTo(mapInstance);
 
+  // Markers are now fixed to their coordinates and will stay there
+  // Mapbox handles updating screen position during zoom/pan automatically
   return marker;
 };
 
