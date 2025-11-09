@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TopNav } from "@/components/TopNav";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import LiquidEther from "@/components/LiquidEther";
+import { useAgentic } from "@/contexts/AgenticContext";
 
 const Plans = () => {
+  const { updateScreenContext } = useAgentic();
   const { data, isLoading, isError, error } = useQuery<ServicePlan[]>({
     queryKey: ["service-plans"],
     queryFn: getServicePlans,
@@ -26,6 +28,22 @@ const Plans = () => {
     () => plans.length > 0 && plans.every((plan) => plan._fromDatabase === false),
     [plans],
   );
+
+  // Update screen context with visible plans for Vapi assistant
+  useEffect(() => {
+    if (plans.length > 0) {
+      const planList = plans
+        .map(p => {
+          const allFeatures = p.features.join("; ");
+          const popular = p.popular ? " [MOST POPULAR]" : "";
+          return `- ${p.name}: $${p.price}/mo${popular}\n  Features: ${allFeatures}`;
+        })
+        .join("\n");
+
+      const content = `PLANS PAGE - Available Plans:\n${planList}\n\nSELLING TIPS:\n- All plans include unlimited talk, text, and data\n- Premium data amounts vary - ask about their usage\n- Most Popular plan is best value for most customers\n- Family discounts available for multiple lines\n- Can switch plans anytime - no commitment`;
+      updateScreenContext({ visibleContent: content });
+    }
+  }, [plans, updateScreenContext]);
 
   // Reusable magenta gradient to match LiquidEther (#5A0040 -> #E20074)
   const magentaGradient =

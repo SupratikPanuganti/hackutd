@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { ConversationPanel } from "@/components/assist/ConversationPanel";
+import { DebugPanel } from "@/components/DebugPanel";
 import { cn } from "@/lib/utils";
+import { useAutonomousAgent } from "@/hooks/useAutonomousAgent";
+import { useVoiceActions } from "@/hooks/useVoiceActions";
 
 const getContextualGreeting = (path: string): string => {
   switch (path) {
@@ -21,9 +25,38 @@ const getContextualGreeting = (path: string): string => {
 };
 
 export const FloatingAssistant = () => {
-  const { isEnabled, isAssistantOpen, toggleAssistant, closeAssistant, currentContext, sessionId } = useAgentic();
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
+  const { isEnabled, isAssistantOpen, toggleAssistant, closeAssistant, currentContext, sessionId, isVoiceActive, conversationHistory } = useAgentic();
   const [shouldPulse, setShouldPulse] = useState(false);
   const [initialQuestion, setInitialQuestion] = useState<string>("");
+  const [lastDecision, setLastDecision] = useState<string | null>(null);
+
+  // CRITICAL: Initialize voice actions to capture Vapi messages (ALWAYS runs, even on home page)
+  const voiceActions = useVoiceActions();
+
+  // Initialize autonomous agent (Nemotron-powered fully autonomous flow)
+  const { triggerDecision, isActive: isAgentActive, requestDecision } = useAutonomousAgent();
+
+  // Track last user message for debug
+  const lastUserMessage = conversationHistory
+    .filter(m => m.role === 'user')
+    .slice(-1)[0]?.content || null;
+
+  // Track autonomous agent decisions for debug panel
+  useEffect(() => {
+    if (lastUserMessage && isVoiceActive) {
+      // When user speaks, request decision and track it
+      requestDecision().then((decision) => {
+        if (decision) {
+          const actionDesc = `${decision.primaryAction.type} → ${decision.primaryAction.target || 'N/A'}`;
+          setLastDecision(actionDesc);
+        }
+      }).catch(() => {
+        // Ignore errors, just for debug tracking
+      });
+    }
+  }, [lastUserMessage, isVoiceActive]);
 
   useEffect(() => {
     if (!isEnabled || isAssistantOpen) {
@@ -44,14 +77,28 @@ export const FloatingAssistant = () => {
     }
   }, [currentContext, isAssistantOpen]);
 
-  if (!isEnabled) {
-    return null;
-  }
-
   return (
     <>
-      {/* Floating Button */}
-      {!isAssistantOpen && (
+      {/* Debug Panel - DISABLED */}
+      {/* {isEnabled && (
+        <DebugPanel
+          voiceActionsStatus={{
+            isProcessing: voiceActions.isProcessing,
+            lastAction: voiceActions.lastAction?.type || null,
+          }}
+          autonomousAgentStatus={{
+            isActive: isAgentActive,
+            lastMessage: lastUserMessage,
+            lastDecision: lastDecision,
+          }}
+        />
+      )} */}
+
+      {/* Don't render assistant UI if not enabled OR on home page (but hooks still run above!) */}
+      {isEnabled && !isHomePage && (
+        <>
+          {/* Floating Button */}
+          {!isAssistantOpen && (
         <div className="fixed bottom-6 right-6 z-50">
           <Button
             onClick={toggleAssistant}
@@ -104,6 +151,8 @@ export const FloatingAssistant = () => {
             </div>
           </Card>
         </div>
+      )}
+        </>
       )}
     </>
   );

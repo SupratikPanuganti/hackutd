@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,10 +7,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useAgentic } from "@/contexts/AgenticContext";
-import { useToast } from "@/hooks/use-toast";
 
-const AGENT_ONBOARDING_KEY = "tcare_agent_onboarding_seen";
+interface AgentPermissionsDialogProps {
+  isOpen: boolean;
+  onAccept: () => void;
+  onDecline: () => void;
+  isEnabling: boolean;
+}
 
 export const AgentOnboardingDialog = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -79,12 +81,28 @@ export const AgentOnboardingDialog = () => {
       <DialogContent className="sm:max-w-[500px] bg-[#5A0040] border-[#E20074] border-2 text-white shadow-2xl rounded-2xl">
         {/* Content */}
         <div>
+export const AgentPermissionsDialog = ({
+  isOpen,
+  onAccept,
+  onDecline,
+  isEnabling,
+}: AgentPermissionsDialogProps) => {
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onDecline}>
+      <DialogContent className="sm:max-w-[450px] backdrop-blur-xl bg-white/10 border-white/20 text-white shadow-2xl rounded-2xl relative overflow-hidden group">
+        {/* Liquid glass effect overlays */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#5A0040]/30 via-[#E20074]/20 to-[#5A0040]/30 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-tl from-white/10 via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+        {/* Content with relative positioning */}
+        <div className="relative z-10">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-white drop-shadow-lg">
-              Welcome to T-Care AI Assistant! 🤖
+              Enable AI Agent Mode
             </DialogTitle>
             <DialogDescription className="text-white/90 text-base leading-relaxed pt-2">
-              Experience a smarter way to get support with our AI-powered voice assistant.
+              Get faster help with our AI-powered voice assistant
             </DialogDescription>
           </DialogHeader>
 
@@ -115,25 +133,39 @@ export const AgentOnboardingDialog = () => {
               <p className="text-sm text-white">
                 <strong className="text-white">Note:</strong> The AI assistant requires microphone access to provide voice support.
                 You can enable or disable it anytime using the toggle in the navigation bar.
+          <div className="space-y-3 py-4">
+            <div className="bg-white/10 rounded-xl p-4 border border-white/20 backdrop-blur-sm space-y-3">
+              <p className="text-sm text-white/90">
+                <strong className="text-white">Microphone:</strong> Used for voice commands and conversations
+              </p>
+              <p className="text-sm text-white/90">
+                <strong className="text-white">Camera:</strong> Used for sentiment analysis to provide better assistance
+              </p>
+              <p className="text-sm text-white/90">
+                <strong className="text-white">Privacy:</strong> Your data is processed in real-time and not stored
               </p>
             </div>
+
+            <p className="text-xs text-white/70 text-center">
+              You can disable Agent Mode anytime using the toggle in the navigation
+            </p>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={handleDecline}
+              onClick={onDecline}
               disabled={isEnabling}
               className="bg-black/40 hover:bg-black/60 text-white border-white/50 hover:border-white/70 rounded-xl transition-all duration-300"
             >
-              Maybe Later
+              Cancel
             </Button>
             <Button
-              onClick={handleAccept}
+              onClick={onAccept}
               disabled={isEnabling}
               className="bg-[#E20074] hover:bg-[#E20074]/80 text-white border-0 shadow-lg hover:shadow-xl rounded-xl transition-all duration-300"
             >
-              {isEnabling ? "Enabling..." : "Enable AI Assistant"}
+              {isEnabling ? "Enabling..." : "Enable Agent Mode"}
             </Button>
           </DialogFooter>
         </div>
