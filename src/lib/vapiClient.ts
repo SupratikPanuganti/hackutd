@@ -179,6 +179,15 @@ const attachDebugListeners = (instance: Vapi) => {
   instance.on("error", (error) => {
     debugError("Event: error", error);
   });
+
+  // Listen for when assistant starts speaking
+  instance.on("speech-start", () => {
+    debugLog("🎤 Assistant started speaking");
+  });
+
+  instance.on("speech-end", () => {
+    debugLog("🎤 Assistant stopped speaking");
+  });
 };
 
 const logAudioElements = (context: string) => {
@@ -221,6 +230,14 @@ export const startVoiceCall = async (
     logVapiWarn("Voice integration not configured. Skipping startVoiceCall.");
     return null;
   }
+
+  console.log('🚀 [START VOICE CALL]', {
+    hasIntroPrompt: !!introPrompt,
+    introPromptText: introPrompt,
+    hasContext: !!contextPayload,
+    contextLength: contextPayload?.length
+  });
+
   const vapi = getVapiClient();
   const assistantId = getAssistantId();
 
@@ -278,14 +295,33 @@ export const startVoiceCall = async (
 
   const assistantOverrides: Record<string, unknown> = {
     firstMessageMode: "assistant-speaks-first",
+    // Disable camera/video to avoid conflicts with sentiment analysis
+    recordingEnabled: false,
   };
 
   if (introPrompt) {
     assistantOverrides.firstMessage = introPrompt;
   }
 
+  console.log('📝 [ASSISTANT OVERRIDES]', {
+    firstMessageMode: assistantOverrides.firstMessageMode,
+    firstMessage: assistantOverrides.firstMessage,
+    recordingEnabled: assistantOverrides.recordingEnabled
+  });
+
+  // Request ONLY microphone, NOT camera
+  try {
+    // Explicitly request only audio to avoid camera conflicts
+    await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch (err) {
+    debugError("Microphone permission error:", err);
+    throw new Error("Microphone permission denied. Please allow microphone access.");
+  }
+
+  // Start call with audio only (no video)
   const call = await vapi.start(assistantId, assistantOverrides);
-  debugLog("startVoiceCall invoked", {
+  console.log('📞 [VAPI CALL STARTED]', { callId: call?.id });
+  debugLog("startVoiceCall invoked - AUDIO ONLY", {
     assistantId,
     introPromptLength: introPrompt?.length ?? 0,
     hasContext: Boolean(contextPayload),
@@ -302,35 +338,42 @@ export const startVoiceCall = async (
     debugWarn("Proceeding without call-start event", error);
   });
 
+  // Wait a moment for audio elements to be ready
+  await new Promise(resolve => setTimeout(resolve, 300));
+
   try {
     vapi.setMuted(false);
     // Force output to default device in case browser selected a null sink.
-    vapi.setOutputDeviceAsync({ speakerId: "default" });
+    await vapi.setOutputDeviceAsync({ speakerId: "default" });
+    debugLog("Audio output set to default speaker");
   } catch (error) {
     debugWarn("Unable to enforce audio output device", error);
   }
 
-  vapi.send({
-    type: "control",
-    control: "say-first-message",
-  });
-  logAudioElements("After say-first-message control sent");
+  logAudioElements("After audio setup");
 
-  if (debugEnabled) {
-    setTimeout(() => logAudioElements("1s after say-first-message"), 1000);
-    setTimeout(() => logAudioElements("3s after say-first-message"), 3000);
-    setTimeout(() => logAudioElements("5s after say-first-message"), 5000);
-  }
+  // VAPI will automatically speak the first message because we set:
+  // - firstMessageMode: "assistant-speaks-first"
+  // - firstMessage: introPrompt
+  // We DON'T send context yet to avoid interfering with the greeting
 
+  console.log('⏳ [WAITING] For assistant greeting to complete...');
+
+  // Wait for the greeting to fully complete (3 seconds should be enough)
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  console.log('✅ [GREETING DONE] Now sending context payload');
+
+  // Now send context payload AFTER greeting has completed
   if (contextPayload) {
     vapi.send({
       type: "add-message",
-      triggerResponseEnabled: false,
       message: {
         role: "system",
         content: contextPayload,
       },
     });
+    console.log('📤 [CONTEXT SENT] Payload delivered to VAPI');
   }
 
   return call;

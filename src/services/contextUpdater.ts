@@ -109,6 +109,7 @@ export class ContextUpdater {
       // Send to VAPI
       vapi.send({
         type: 'add-message',
+        triggerResponseEnabled: false,
         message: {
           role: 'system',
           content: enhancedMessage,
@@ -166,52 +167,59 @@ export class ContextUpdater {
   private buildContextMessage(context: ContextUpdate): string {
     const parts: string[] = [];
 
-    parts.push('=== MULTIMODAL CONTEXT UPDATE ===');
-    parts.push(`Session: ${context.sessionId}`);
+    parts.push('=== CONTEXT UPDATE ===');
     parts.push(`Time: ${new Date(context.timestamp).toLocaleTimeString()}`);
+    parts.push(`Page: ${context.screenContext.routeLabel}`);
     parts.push('');
 
-    // Screen context
-    parts.push('SCREEN CONTEXT:');
-    parts.push(`- Current Page: ${context.screenContext.routeLabel} (${context.screenContext.route})`);
-    if (context.screenContext.focusedElement) {
-      parts.push(`- User Focus: ${context.screenContext.focusedElement}`);
+    // PAGE CONTENT - CRITICAL for preventing hallucinations
+    if (context.screenContext.visibleContent) {
+      parts.push('=== PAGE CONTENT (USE ONLY THIS INFO) ===');
+      parts.push(context.screenContext.visibleContent);
+      parts.push('=== END PAGE CONTENT ===');
+      parts.push('');
     }
-    if (context.userInput) {
-      parts.push(`- User Input: "${context.userInput}"`);
-    }
-    parts.push('');
 
-    // Sentiment context
+    // Sentiment context - MOST IMPORTANT
     if (context.sentiment) {
-      parts.push('SENTIMENT ANALYSIS:');
-      parts.push(`- Current: ${context.sentiment.label} (${context.sentiment.value})`);
-      parts.push(`- Trend: ${context.sentimentTrend}`);
+      parts.push('SENTIMENT UPDATE:');
+      parts.push(`Current: ${context.sentiment.label} (${context.sentiment.value}) | Trend: ${context.sentimentTrend.toUpperCase()}`);
 
-      // Interpret sentiment for the assistant
-      if (context.sentiment.value < -0.5) {
-        parts.push('- ⚠️ USER IS FRUSTRATED - Prioritize quick solutions and show empathy');
+      // Personalization guidance
+      if (context.sentiment.value > 0.5) {
+        parts.push('✅ USER IS HAPPY - Perfect time to suggest upgrades, explain benefits, upsell premium options');
+      } else if (context.sentiment.value > 0) {
+        parts.push('😊 USER IS POSITIVE - Engaged and receptive, good time for recommendations');
+      } else if (context.sentiment.value < -0.5) {
+        parts.push('⚠️ USER IS FRUSTRATED - Empathy required! Simplify, apologize, offer quick fixes immediately');
       } else if (context.sentiment.value < 0) {
-        parts.push('- ℹ️ USER IS SLIGHTLY FRUSTRATED - Be patient and helpful');
-      } else if (context.sentiment.value > 0.5) {
-        parts.push('- ✅ USER IS HAPPY - Can provide detailed information');
+        parts.push('😐 USER IS NEGATIVE - Be extra helpful, patient, and clear');
+      } else {
+        parts.push('➡️ USER IS NEUTRAL - Balance info with gentle recommendations');
       }
 
       if (context.sentimentTrend === 'declining') {
-        parts.push('- 📉 SENTIMENT DECLINING - Consider changing approach or offering alternatives');
+        parts.push('📉 ALERT: Sentiment declining - Change approach NOW! Be more direct, offer alternatives');
       } else if (context.sentimentTrend === 'improving') {
-        parts.push('- 📈 SENTIMENT IMPROVING - Current approach is working well');
+        parts.push('📈 Great! Sentiment improving - Your approach is working, keep it up');
       }
       parts.push('');
+    }
+
+    // Page-specific selling context
+    if (context.screenContext.route === '/plans') {
+      parts.push('PAGE STRATEGY: Ask about data usage, family size, streaming habits to recommend best plan');
+    } else if (context.screenContext.route === '/devices') {
+      parts.push('PAGE STRATEGY: Ask iOS vs Android preference, camera importance, budget to suggest perfect device');
     }
 
     // Recent conversation
     if (context.recentMessages.length > 0) {
-      parts.push('RECENT CONVERSATION:');
-      context.recentMessages.slice(-3).forEach((msg) => {
-        parts.push(`${msg.role.toUpperCase()}: ${msg.content}`);
-      });
       parts.push('');
+      parts.push('RECENT MESSAGES:');
+      context.recentMessages.slice(-2).forEach((msg) => {
+        parts.push(`${msg.role}: ${msg.content.substring(0, 100)}`);
+      });
     }
 
     return parts.join('\n');
@@ -227,32 +235,25 @@ export class ContextUpdater {
 
     const parts: string[] = [contextMessage];
 
-    parts.push('AI DECISION ANALYSIS:');
-    parts.push(`- Recommended Action: ${decision.decision.action}`);
-    parts.push(`- Confidence: ${(decision.decision.confidence * 100).toFixed(0)}%`);
-    parts.push(`- Reasoning: ${decision.decision.reasoning}`);
-    parts.push(`- Response Depth: ${decision.decision.responseDepth}`);
-    parts.push('');
-
-    parts.push('RESPONSE STYLE:');
-    parts.push(`- Tone: ${decision.responseStyle.tone}`);
-    parts.push(`- Verbosity: ${decision.responseStyle.verbosity}`);
-    parts.push(`- Urgency: ${decision.responseStyle.urgency}`);
+    parts.push('AI RECOMMENDATION:');
+    parts.push(`Action: ${decision.decision.action} (${(decision.decision.confidence * 100).toFixed(0)}% confidence)`);
+    parts.push(`Why: ${decision.decision.reasoning}`);
+    parts.push(`Style: ${decision.responseStyle.tone}, ${decision.responseStyle.verbosity}, ${decision.decision.responseDepth} depth`);
     parts.push('');
 
     if (decision.shouldChangeApproach) {
-      parts.push('⚠️ ATTENTION: Consider changing approach - sentiment indicates current method not working');
+      parts.push('⚠️ CHANGE APPROACH - Current strategy not working based on sentiment');
       parts.push('');
     }
 
     if (decision.decision.suggestedResponse) {
-      parts.push('SUGGESTED RESPONSE:');
+      parts.push('SUGGESTED MESSAGE:');
       parts.push(decision.decision.suggestedResponse);
       parts.push('');
     }
 
     if (decision.decision.alternativeOptions && decision.decision.alternativeOptions.length > 0) {
-      parts.push('ALTERNATIVE OPTIONS:');
+      parts.push('OPTIONS TO OFFER:');
       decision.decision.alternativeOptions.forEach((opt, i) => {
         parts.push(`${i + 1}. ${opt}`);
       });
