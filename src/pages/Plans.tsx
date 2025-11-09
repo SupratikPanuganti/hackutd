@@ -1,8 +1,10 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { TopNav } from "@/components/TopNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { plans } from "@/lib/mockData";
+import { getServicePlans } from "@/lib/supabaseService";
 import { cn } from "@/lib/utils";
 import {
   Accordion,
@@ -13,6 +15,17 @@ import {
 import LiquidEther from "@/components/LiquidEther";
 
 const Plans = () => {
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["service-plans"],
+    queryFn: getServicePlans,
+  });
+
+  const plans = data ?? [];
+  const isMockData = useMemo(
+    () => plans.length > 0 && plans.every((plan) => plan._fromDatabase === false),
+    [plans],
+  );
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Full Page Three.js Background */}
@@ -51,54 +64,90 @@ const Plans = () => {
                 All plans include unlimited talk, text, and 5G data
               </p>
             </div>
+            {isMockData && (
+              <div className="mt-6 mx-auto max-w-2xl">
+                <Card className="border-yellow-400/30 bg-yellow-500/10 text-white">
+                  <CardContent className="py-4">
+                    <p className="text-sm">
+                      Unable to reach Supabase. Showing mock data instead. Double check your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </section>
 
         <section className="py-16">
           <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {plans.map((plan) => (
-                <Card
-                  key={plan.id}
-                  className={cn(
-                    "rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10 transition-all duration-300",
-                    plan.popular ? "border-white/30 shadow-[0_8px_32px_0_rgba(255,255,255,0.2)] hover:bg-white/15" : "hover:shadow-xl hover:bg-white/15 hover:scale-105"
-                  )}
-                >
-                  {plan.popular && (
-                    <div className="bg-white/20 text-white text-center py-2 rounded-t-2xl font-semibold backdrop-blur-sm border-b border-white/20">
-                      Most Popular
-                    </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className="text-2xl text-white drop-shadow-md">{plan.name}</CardTitle>
-                    <CardDescription className="text-3xl font-bold text-white mt-2 drop-shadow-md">
-                      ${plan.price}<span className="text-base text-white/80">/mo</span>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3 mb-6">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="text-white shrink-0 mt-0.5">✓</span>
-                          <span className="text-sm text-white/90">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      className={cn(
-                        "w-full rounded-xl backdrop-blur-md transition-all duration-300",
-                        plan.popular 
-                          ? "bg-white/20 hover:bg-white/30 text-white border border-white/30 shadow-lg hover:shadow-xl" 
-                          : "bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/30"
-                      )}
-                    >
-                      {plan.popular ? "Get Started" : "Add Line"}
-                    </Button>
-                  </CardContent>
+            {isLoading && (
+              <div className="flex justify-center">
+                <Card className="border-white/20 bg-white/5 text-white backdrop-blur-md px-6 py-4">
+                  <span>Loading plans…</span>
                 </Card>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {isError && (
+              <div className="flex justify-center">
+                <Card className="border-red-400/40 bg-red-500/10 text-white backdrop-blur-md px-6 py-4">
+                  <span>Failed to load plans: {(error as Error).message}</span>
+                </Card>
+              </div>
+            )}
+
+            {!isLoading && !isError && (
+              <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                {plans.map((plan) => (
+                  <Card
+                    key={plan.id}
+                    className={cn(
+                      "rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10 transition-all duration-300",
+                      plan.popular ? "border-white/30 shadow-[0_8px_32px_0_rgba(255,255,255,0.2)] hover:bg-white/15" : "hover:shadow-xl hover:bg-white/15 hover:scale-105"
+                    )}
+                  >
+                    {plan.popular && (
+                      <div className="bg-white/20 text-white text-center py-2 rounded-t-2xl font-semibold backdrop-blur-sm border-b border-white/20">
+                        Most Popular
+                      </div>
+                    )}
+                    <CardHeader>
+                      <CardTitle className="text-2xl text-white drop-shadow-md flex items-center gap-2">
+                        {plan.name}
+                        {plan._fromDatabase && (
+                          <Badge variant="outline" className="bg-green-500/20 border-green-500/40 text-green-100">
+                            Live
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <CardDescription className="text-3xl font-bold text-white mt-2 drop-shadow-md">
+                        ${plan.price}<span className="text-base text-white/80">/mo</span>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3 mb-6">
+                        {plan.features.map((feature, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-white shrink-0 mt-0.5">✓</span>
+                            <span className="text-sm text-white/90">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        className={cn(
+                          "w-full rounded-xl backdrop-blur-md transition-all duration-300",
+                          plan.popular 
+                            ? "bg-white/20 hover:bg-white/30 text-white border border-white/30 shadow-lg hover:shadow-xl" 
+                            : "bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/30"
+                        )}
+                      >
+                        {plan.popular ? "Get Started" : "Add Line"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

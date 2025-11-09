@@ -1,10 +1,31 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { logVapiDebug, logVapiWarn, startVoiceCall, stopVoiceCall } from '@/lib/vapiClient';
+import { isVoiceIntegrationConfigured, logVapiDebug, logVapiWarn, startVoiceCall, stopVoiceCall } from '@/lib/vapiClient';
+import { ContextUpdater, ContextUpdate } from '@/services/contextUpdater';
 
 interface AgenticPermissions {
   camera: boolean;
   microphone: boolean;
+}
+
+export interface SentimentData {
+  value: number; // -1 (frustrated), 0 (neutral), 1 (happy)
+  timestamp: number;
+  label?: string; // 'Frustrated' | 'Neutral' | 'Happy'
+}
+
+export interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
+
+export interface ScreenContext {
+  route: string;
+  routeLabel: string;
+  focusedElement?: string;
+  scrollPosition?: number;
+  visibleContent?: string;
 }
 
 interface AgenticContextType {
@@ -15,6 +36,14 @@ interface AgenticContextType {
   currentContext: string;
   hasSeenOnboarding: boolean;
   isVoiceActive: boolean;
+  // Multimodal data
+  currentSentiment: SentimentData | null;
+  sentimentHistory: SentimentData[];
+  sentimentTrend: 'improving' | 'declining' | 'stable';
+  conversationHistory: Message[];
+  screenContext: ScreenContext;
+  isSentimentServiceRunning: boolean;
+  // Actions
   enableAgenticMode: () => Promise<boolean>;
   disableAgenticMode: () => void;
   toggleAssistant: () => void;
@@ -24,6 +53,13 @@ interface AgenticContextType {
   markOnboardingComplete: () => void;
   startVoiceAssistant: () => Promise<void>;
   stopVoiceAssistant: () => Promise<void>;
+  // Multimodal actions
+  addMessage: (role: 'user' | 'assistant', content: string) => void;
+  clearConversation: () => void;
+  updateScreenContext: (context: Partial<ScreenContext>) => void;
+  startSentimentService: () => Promise<void>;
+  stopSentimentService: () => Promise<void>;
+  getMultimodalContext: () => string;
 }
 
 const AgenticContext = createContext<AgenticContextType | undefined>(undefined);
@@ -31,18 +67,42 @@ const AgenticContext = createContext<AgenticContextType | undefined>(undefined);
 const STORAGE_KEY = 'tcare_agentic_mode';
 const ONBOARDING_KEY = 'tcare_agentic_onboarding';
 
+const BACKEND_WS_URL = import.meta.env.VITE_BACKEND_WS_URL || 'ws://localhost:3001';
+
+const getRouteLabel = (pathname: string): string => {
+  const labels: Record<string, string> = {
+    '/': 'Home',
+    '/plans': 'Plans',
+    '/devices': 'Devices',
+    '/status': 'Network Status',
+    '/help': 'Help & Support',
+    '/assist': 'AI Assistant',
+  };
+  return labels[pathname] || 'Unknown Page';
+};
+
+const getSentimentLabel = (value: number): string => {
+  if (value > 0) return 'Happy';
+  if (value < 0) return 'Frustrated';
+  return 'Neutral';
+};
+
 export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const location = useLocation();
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
+  const contextUpdaterRef = useRef<ContextUpdater | null>(null);
+
   const [isEnabled, setIsEnabled] = useState<boolean>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored).isEnabled : false;
   });
-  
+
   const [hasPermissions, setHasPermissions] = useState<AgenticPermissions>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored).hasPermissions : { camera: false, microphone: false };
   });
-  
+
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [currentContext, setCurrentContext] = useState(location.pathname);
@@ -51,10 +111,154 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
   });
   const [isVoiceActive, setIsVoiceActive] = useState(false);
 
+  // Multimodal state
+  const [currentSentiment, setCurrentSentiment] = useState<SentimentData | null>(null);
+  const [sentimentHistory, setSentimentHistory] = useState<SentimentData[]>([]);
+  const [sentimentTrend, setSentimentTrend] = useState<'improving' | 'declining' | 'stable'>('stable');
+  const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
+  const [screenContext, setScreenContext] = useState<ScreenContext>({
+    route: location.pathname,
+    routeLabel: getRouteLabel(location.pathname),
+  });
+  const [isSentimentServiceRunning, setIsSentimentServiceRunning] = useState(false);
+
+  // Initialize context updater
+  useEffect(() => {
+    const updateInterval = parseInt(import.meta.env.VITE_CONTEXT_UPDATE_INTERVAL || '5000', 10);
+    contextUpdaterRef.current = new ContextUpdater(updateInterval);
+
+    return () => {
+      contextUpdaterRef.current?.stop();
+    };
+  }, []);
+
+  // Function to build current context for updates
+  const buildContextUpdate = (): ContextUpdate => {
+    return {
+      sessionId,
+      timestamp: Date.now(),
+      screenContext,
+      sentiment: currentSentiment,
+      sentimentTrend,
+      recentMessages: conversationHistory,
+    };
+  };
+
+  // Start/stop context updater when voice active changes
+  useEffect(() => {
+    // Only run context updater when Agent Mode is ON and voice is active
+    if (isEnabled && isVoiceActive && contextUpdaterRef.current) {
+      // Start continuous updates
+      contextUpdaterRef.current.start(buildContextUpdate);
+      logVapiDebug('Context updater started - Agent Mode is ON');
+    } else if (contextUpdaterRef.current) {
+      // Stop updates when Agent Mode is OFF or voice inactive
+      contextUpdaterRef.current.stop();
+      if (!isEnabled) {
+        logVapiDebug('Context updater stopped - Agent Mode is OFF');
+      } else {
+        logVapiDebug('Context updater stopped - Voice inactive');
+      }
+    }
+  }, [isEnabled, isVoiceActive, sessionId, screenContext, currentSentiment, sentimentTrend, conversationHistory]);
+
+  // Update screen context on route change
   useEffect(() => {
     setCurrentContext(location.pathname);
+    setScreenContext(prev => ({
+      ...prev,
+      route: location.pathname,
+      routeLabel: getRouteLabel(location.pathname),
+    }));
     logVapiDebug("Agentic context route change", { pathname: location.pathname });
   }, [location.pathname]);
+
+  // WebSocket connection for sentiment streaming
+  useEffect(() => {
+    // Only connect WebSocket when Agent Mode is enabled AND camera permission granted
+    if (!isEnabled || !hasPermissions.camera) {
+      // Cleanup if Agent Mode is disabled
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+        setIsSentimentServiceRunning(false);
+      }
+      return;
+    }
+
+    const connectWebSocket = () => {
+      try {
+        const ws = new WebSocket(`${BACKEND_WS_URL}/sentiment`);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          logVapiDebug('Sentiment WebSocket connected - Agent Mode is ON');
+          // Auto-start sentiment service when Agent Mode is enabled
+          ws.send(JSON.stringify({ type: 'start', cameraIndex: 1 }));
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+
+            if (message.type === 'sentiment') {
+              const sentimentData: SentimentData = {
+                ...message.data,
+                label: getSentimentLabel(message.data.value),
+              };
+
+              setCurrentSentiment(sentimentData);
+              setSentimentHistory(prev => {
+                const updated = [...prev, sentimentData];
+                // Keep last 100 sentiments
+                return updated.slice(-100);
+              });
+
+              // Calculate trend every 10 sentiments
+              if (sentimentHistory.length >= 10) {
+                calculateTrend();
+              }
+            } else if (message.type === 'status') {
+              setIsSentimentServiceRunning(message.data.running);
+            }
+          } catch (error) {
+            logVapiWarn('Error parsing sentiment WebSocket message', error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          logVapiWarn('Sentiment WebSocket error', error);
+        };
+
+        ws.onclose = () => {
+          logVapiDebug('Sentiment WebSocket closed');
+          wsRef.current = null;
+
+          // Attempt reconnect after 5 seconds
+          if (isEnabled && hasPermissions.camera) {
+            reconnectTimeoutRef.current = window.setTimeout(() => {
+              logVapiDebug('Attempting to reconnect sentiment WebSocket');
+              connectWebSocket();
+            }, 5000);
+          }
+        };
+      } catch (error) {
+        logVapiWarn('Failed to connect sentiment WebSocket', error);
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [isEnabled, hasPermissions.camera]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -105,15 +309,41 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const disableAgenticMode = () => {
-    setIsEnabled(false);
-    setIsAssistantOpen(false);
+    logVapiDebug("Disabling Agentic mode - stopping all services");
+
+    // Stop voice
     if (isVoiceActive) {
       stopVoiceCall().catch((error) => {
         logVapiWarn("Error stopping voice on disable", error);
       });
       setIsVoiceActive(false);
     }
-    logVapiDebug("Agentic mode disabled");
+
+    // Stop sentiment service via WebSocket
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'stop' }));
+    }
+
+    // Close WebSocket connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    // Clear sentiment state
+    setCurrentSentiment(null);
+    setSentimentHistory([]);
+    setSentimentTrend('stable');
+    setIsSentimentServiceRunning(false);
+
+    // Clear conversation state
+    setConversationHistory([]);
+
+    // Disable agent mode
+    setIsEnabled(false);
+    setIsAssistantOpen(false);
+
+    logVapiDebug("Agentic mode disabled - all services stopped");
   };
 
   const toggleAssistant = () => {
@@ -142,15 +372,59 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const startVoiceAssistant = async () => {
     try {
-      logVapiDebug("Starting voice assistant");
-      const introMessage = "Hello! I'm Tee, your T-Care AI assistant. How can I help you today?";
-      await startVoiceCall(introMessage);
+      if (!isVoiceIntegrationConfigured()) {
+        logVapiWarn("Voice integration configuration missing. Skipping voice assistant start.");
+        setIsVoiceActive(false);
+        return;
+      }
+
+      logVapiDebug("Starting voice assistant with multimodal context");
+
+      // Prepare intro message with sentiment awareness
+      let introMessage = "Hello! I'm Tee, your T-Care AI assistant.";
+
+      if (currentSentiment) {
+        if (currentSentiment.value < 0) {
+          introMessage = "Hello! I'm Tee, your T-Care AI assistant. I'm here to help resolve any issues you're experiencing.";
+        } else if (currentSentiment.value > 0) {
+          introMessage = "Hello! I'm Tee, your T-Care AI assistant. I'm glad to see you! How can I help you today?";
+        } else {
+          introMessage += " How can I help you today?";
+        }
+      } else {
+        introMessage += " How can I help you today?";
+      }
+
+      // Get multimodal context payload
+      const contextPayload = getMultimodalContext();
+
+      // Enhanced context with instructions for the assistant
+      const enhancedContext = `
+${contextPayload}
+
+INSTRUCTIONS:
+- You are a T-Mobile customer care AI assistant
+- You can help with account questions, technical support, plan information, and device compatibility
+- You have access to the user's current page and sentiment
+- If the user seems frustrated (negative sentiment), be extra empathetic and prioritize quick solutions
+- You can navigate the user to different pages by mentioning them (e.g., "Let me show you our plans")
+- Available pages: Home, Plans, Devices, Network Status, Help, AI Assistant
+- Always be helpful, concise, and action-oriented
+- Focus on hands-free assistance - guide the user through tasks without requiring them to touch the screen
+`;
+
+      await startVoiceCall(introMessage, enhancedContext);
       setIsVoiceActive(true);
-      logVapiDebug("Voice assistant started successfully");
+      logVapiDebug("Voice assistant started successfully with context", {
+        contextLength: enhancedContext.length,
+        sentiment: currentSentiment?.label,
+      });
     } catch (error) {
       logVapiWarn("Failed to start voice assistant", error);
       setIsVoiceActive(false);
-      throw error;
+      if (isVoiceIntegrationConfigured()) {
+        throw error;
+      }
     }
   };
 
@@ -166,6 +440,115 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  // Multimodal actions
+  const addMessage = (role: 'user' | 'assistant', content: string) => {
+    const message: Message = {
+      role,
+      content,
+      timestamp: Date.now(),
+    };
+    setConversationHistory(prev => [...prev, message]);
+    logVapiDebug('Message added to conversation', { role, length: content.length });
+  };
+
+  const clearConversation = () => {
+    setConversationHistory([]);
+    logVapiDebug('Conversation cleared');
+  };
+
+  const updateScreenContext = (context: Partial<ScreenContext>) => {
+    setScreenContext(prev => ({ ...prev, ...context }));
+    logVapiDebug('Screen context updated', context);
+  };
+
+  const startSentimentService = async () => {
+    try {
+      // Only allow if Agent Mode is enabled
+      if (!isEnabled) {
+        throw new Error('Agent Mode must be enabled first');
+      }
+
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        throw new Error('WebSocket not connected');
+      }
+
+      wsRef.current.send(JSON.stringify({ type: 'start', cameraIndex: 1 }));
+      logVapiDebug('Sentiment service start requested');
+    } catch (error) {
+      logVapiWarn('Failed to start sentiment service', error);
+      throw error;
+    }
+  };
+
+  const stopSentimentService = async () => {
+    try {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        throw new Error('WebSocket not connected');
+      }
+
+      wsRef.current.send(JSON.stringify({ type: 'stop' }));
+      logVapiDebug('Sentiment service stop requested');
+    } catch (error) {
+      logVapiWarn('Failed to stop sentiment service', error);
+      throw error;
+    }
+  };
+
+  const calculateTrend = () => {
+    if (sentimentHistory.length < 10) {
+      setSentimentTrend('stable');
+      return;
+    }
+
+    const recentHistory = sentimentHistory.slice(-20);
+    const midpoint = Math.floor(recentHistory.length / 2);
+    const firstHalf = recentHistory.slice(0, midpoint);
+    const secondHalf = recentHistory.slice(midpoint);
+
+    const firstAvg = firstHalf.reduce((acc, s) => acc + s.value, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((acc, s) => acc + s.value, 0) / secondHalf.length;
+
+    const diff = secondAvg - firstAvg;
+
+    if (diff > 0.2) {
+      setSentimentTrend('improving');
+    } else if (diff < -0.2) {
+      setSentimentTrend('declining');
+    } else {
+      setSentimentTrend('stable');
+    }
+  };
+
+  const getMultimodalContext = (): string => {
+    const parts: string[] = [];
+
+    // Session info
+    parts.push(`Session ID: ${sessionId}`);
+
+    // Screen context
+    parts.push(`Current Page: ${screenContext.routeLabel} (${screenContext.route})`);
+    if (screenContext.focusedElement) {
+      parts.push(`User Focus: ${screenContext.focusedElement}`);
+    }
+
+    // Sentiment context
+    if (currentSentiment) {
+      parts.push(`User Sentiment: ${currentSentiment.label} (${currentSentiment.value})`);
+      parts.push(`Sentiment Trend: ${sentimentTrend}`);
+    }
+
+    // Recent conversation
+    if (conversationHistory.length > 0) {
+      parts.push('\nRecent Conversation:');
+      const recentMessages = conversationHistory.slice(-5);
+      recentMessages.forEach(msg => {
+        parts.push(`${msg.role.toUpperCase()}: ${msg.content}`);
+      });
+    }
+
+    return parts.join('\n');
+  };
+
   return (
     <AgenticContext.Provider
       value={{
@@ -176,6 +559,12 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         currentContext,
         hasSeenOnboarding,
         isVoiceActive,
+        currentSentiment,
+        sentimentHistory,
+        sentimentTrend,
+        conversationHistory,
+        screenContext,
+        isSentimentServiceRunning,
         enableAgenticMode,
         disableAgenticMode,
         toggleAssistant,
@@ -185,6 +574,12 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         markOnboardingComplete,
         startVoiceAssistant,
         stopVoiceAssistant,
+        addMessage,
+        clearConversation,
+        updateScreenContext,
+        startSentimentService,
+        stopSentimentService,
+        getMultimodalContext,
       }}
     >
       {children}

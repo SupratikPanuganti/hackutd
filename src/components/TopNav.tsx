@@ -4,6 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { useCallback, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAgentic } from "@/contexts/AgenticContext";
+import { isVoiceIntegrationConfigured } from "@/lib/vapiClient";
 import { useToast } from "@/hooks/use-toast";
 
 export const TopNav = () => {
@@ -46,11 +47,26 @@ export const TopNav = () => {
         const success = await enableAgenticMode();
 
         if (success) {
-          await startVoiceAssistant();
-          toast({
-            title: "AI Agent Activated! 🎉",
-            description: "Your AI assistant is now speaking. How can I help you?",
-          });
+          if (isVoiceIntegrationConfigured()) {
+            try {
+              await startVoiceAssistant();
+              toast({
+                title: "AI Agent Activated! 🎉",
+                description: "Your AI assistant is now speaking. How can I help you?",
+              });
+            } catch (error) {
+              console.error("Failed to start voice assistant after enabling agent mode", error);
+              toast({
+                title: "Agent Mode Enabled",
+                description: "Agent mode is active, but we couldn't start voice assistance. Check your AI configuration.",
+              });
+            }
+          } else {
+            toast({
+              title: "Agent Mode Enabled",
+              description: "Voice integration is disabled in this test build, so audio won't start automatically.",
+            });
+          }
         } else {
           toast({
             title: "Permissions Required",
@@ -123,12 +139,6 @@ export const TopNav = () => {
 
           {/* Right side - Desktop */}
           <div className="hidden md:flex items-center space-x-2 lg:space-x-3 relative z-20">
-            <div className="hidden lg:flex items-center rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-sm transition-all duration-300 group-hover:border-white/30 group-hover:bg-white/15">
-              <span className="text-white/80 transition-colors duration-300 group-hover:text-white">Sentiment:</span>
-              <span className="ml-2 rounded-md bg-emerald-500/30 px-2 py-0.5 text-white font-semibold backdrop-blur-sm border border-emerald-500/30">
-                Positive
-              </span>
-            </div>
             <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm border">
               <span className="text-xs font-medium">Agent Mode</span>
               <Switch
@@ -208,14 +218,6 @@ export const TopNav = () => {
                 </Button>
               </Link>
             ))}
-
-            {/* Sentiment Badge */}
-            <div className="flex items-center justify-between rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white/90 backdrop-blur-sm relative z-20 transition-all duration-300">
-              <span className="font-medium text-white/80">Sentiment:</span>
-              <span className="rounded-md bg-emerald-500/30 px-2 py-0.5 text-white font-semibold backdrop-blur-sm border border-emerald-500/30">
-                Positive
-              </span>
-            </div>
 
             {/* AI Toggle */}
             <div className="w-full justify-between inline-flex items-center gap-2 rounded-xl relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm py-3 px-4 border">

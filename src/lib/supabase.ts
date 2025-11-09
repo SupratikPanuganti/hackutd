@@ -1,48 +1,51 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
-// Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+type EnvSource = Record<string, string | undefined>;
 
-// Log configuration status on module load
-console.log('🔧 Supabase Configuration Check:');
-console.log('  - VITE_SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Not set');
-console.log('  - VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ Set' : '❌ Not set');
-console.log('  - Configured:', !!supabaseUrl && !!supabaseAnonKey ? '✅ Yes' : '❌ No');
+const DEFAULT_SUPABASE_URL = 'https://xjmzqlilkmbbpkjjpghu.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbXpxbGlsa21iYnBrampwZ2h1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2Mjg5OTUsImV4cCI6MjA3ODIwNDk5NX0.y7AVIOQvJyWwuJPEEZjxXom4GlrDIwHkDj3dYjfNlw0';
 
-// Helper function to check if Supabase is configured
-export const isSupabaseConfigured = () => {
-  const configured = !!supabaseUrl && !!supabaseAnonKey && supabaseUrl.trim() !== '' && supabaseAnonKey.trim() !== '';
-  console.log('🔍 isSupabaseConfigured() called, result:', configured);
-  return configured;
-};
+const runtimeEnv: EnvSource = (() => {
+  const sources: EnvSource[] = [];
 
-// Create Supabase client safely
-let supabaseInstance: SupabaseClient;
-
-try {
-  if (isSupabaseConfigured()) {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-  } else {
-    // Create a minimal dummy client - it won't be used since isSupabaseConfigured() returns false
-    // But we need something to export to prevent import errors
-    supabaseInstance = createClient(
-      'https://placeholder.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTIwMDAsImV4cCI6MTk2MDc2ODAwMH0.placeholder'
-    );
+  if (typeof import.meta !== 'undefined' && typeof (import.meta as any).env !== 'undefined') {
+    sources.push((import.meta as any).env);
   }
-} catch (error) {
-  console.error('Failed to initialize Supabase client:', error);
-  // Create a dummy client as fallback
-  supabaseInstance = createClient(
-    'https://placeholder.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTIwMDAsImV4cCI6MTk2MDc2ODAwMH0.placeholder'
-  );
-}
 
-export const supabase = supabaseInstance;
+  if (typeof process !== 'undefined' && typeof process.env !== 'undefined') {
+    sources.push(process.env as EnvSource);
+  }
 
-// Database types
+  if (typeof window !== 'undefined' && (window as any).__ENV__) {
+    sources.push((window as any).__ENV__);
+  }
+
+  return Object.assign({}, ...sources);
+})();
+
+const resolveEnv = (key: string): string => (runtimeEnv[key] ?? '').toString().trim();
+
+const resolvedSupabaseUrl =
+  resolveEnv('VITE_SUPABASE_URL') || resolveEnv('SUPABASE_URL') || DEFAULT_SUPABASE_URL;
+const resolvedSupabaseAnonKey =
+  resolveEnv('VITE_SUPABASE_ANON_KEY') || resolveEnv('SUPABASE_ANON_KEY') || DEFAULT_SUPABASE_ANON_KEY;
+
+const SUPABASE_CONFIGURED =
+  resolvedSupabaseUrl !== DEFAULT_SUPABASE_URL || resolvedSupabaseAnonKey !== DEFAULT_SUPABASE_ANON_KEY;
+
+console.log('🔧 Supabase Configuration Check:', {
+  hasUrl: resolvedSupabaseUrl ? '✅ URL set' : '❌ URL missing',
+  hasKey: resolvedSupabaseAnonKey ? '✅ Key set' : '❌ Key missing',
+  configured: SUPABASE_CONFIGURED
+    ? '✅ Using environment Supabase credentials'
+    : 'ℹ️ Using default Supabase credentials',
+});
+
+export const supabase = createClient(resolvedSupabaseUrl.replace(/\/+$/, ''), resolvedSupabaseAnonKey);
+
+export const isSupabaseConfigured = () => SUPABASE_CONFIGURED;
+
 export interface ServicePlan {
   id: string;
   name: string;
@@ -52,7 +55,7 @@ export interface ServicePlan {
   created_at: string;
   updated_at: string;
   is_active: boolean;
-  _fromDatabase?: boolean; // Internal flag to track data source
+  _fromDatabase?: boolean;
 }
 
 export interface Device {
@@ -63,26 +66,13 @@ export interface Device {
   supports_esim: boolean;
   price: number | null;
   image_url: string | null;
-  devices_pics_url: string | null; // Device pictures URL from database
+  devices_pics_url: string | null;
   created_at: string;
   updated_at: string;
   is_available: boolean;
-  _fromDatabase?: boolean; // Internal flag to track data source
+  _fromDatabase?: boolean;
 }
 
-
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Types for our database tables
 export interface User {
   id: string;
   clerk_user_id: string;
@@ -124,7 +114,6 @@ export interface SupportTicket {
   metadata?: Record<string, any>;
 }
 
-// Helper functions for user operations
 export const userOperations = {
   async getByClerkId(clerkUserId: string) {
     const { data, error } = await supabase
@@ -170,7 +159,6 @@ export const userOperations = {
   },
 };
 
-// Helper functions for preferences
 export const preferencesOperations = {
   async get(userId: string) {
     const { data, error } = await supabase
@@ -179,8 +167,11 @@ export const preferencesOperations = {
       .eq('user_id', userId)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data as UserPreferences | null;
+    if (error && 'code' in error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    return (data as UserPreferences) ?? null;
   },
 
   async upsert(userId: string, preferences: Partial<UserPreferences>) {
@@ -195,7 +186,6 @@ export const preferencesOperations = {
   },
 };
 
-// Helper functions for support tickets
 export const ticketsOperations = {
   async getAll(userId: string) {
     const { data, error } = await supabase
