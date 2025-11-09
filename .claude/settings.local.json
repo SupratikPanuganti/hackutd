@@ -27,7 +27,16 @@
       "Bash(del nul)",
       "Bash(rm:*)",
       "Bash(netstat:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:build.nvidia.com)",
+      "WebSearch",
+      "WebFetch(domain:docs.api.nvidia.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx tsc:*)",
+      "Bash(xxd:*)",
+      "Bash(cmd.exe /c \"taskkill /PID 2760 /F\")",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 2760 -Force\")",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []
