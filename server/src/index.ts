@@ -87,7 +87,7 @@ wss.on('connection', (ws: WebSocket) => {
 
       // Handle start/stop commands
       if (data.type === 'start') {
-        const cameraIndex = data.cameraIndex || 1;
+        const cameraIndex = data.cameraIndex ?? 0;  // Default to camera 0 (front camera)
         sentimentService.start(cameraIndex);
       } else if (data.type === 'stop') {
         sentimentService.stop();
@@ -204,7 +204,7 @@ app.post('/api/sentiment/start', (req, res) => {
     });
   }
 
-  sentimentService.start(cameraIndex || 1);
+  sentimentService.start(cameraIndex ?? 0);  // Default to camera 0 (front camera)
 
   res.json({
     message: 'Sentiment service started',

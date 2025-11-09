@@ -13,9 +13,14 @@ import os
 from pathlib import Path
 
 # ================== CONFIG ==================
-CAMERA_INDEX    = int(os.environ.get("CAMERA_INDEX", 1))
+CAMERA_INDEX    = int(os.environ.get("CAMERA_INDEX", "0"))
 NIM_API_KEY     = os.environ.get("NIM_API_KEY", "")
+OPENAI_API_KEY  = os.environ.get("OPENAI_KEY", "")
 VILA_URL        = "https://ai.api.nvidia.com/v1/vlm/nvidia/vila"
+OPENAI_URL      = "https://api.openai.com/v1/chat/completions"
+USE_OPENAI      = os.environ.get("USE_OPENAI", "false").lower() == "true"
+HEADLESS        = os.environ.get("HEADLESS", "false").lower() == "true"
+DEBUG_WINDOW    = os.environ.get("DEBUG_WINDOW", "false").lower() == "true"  # Show window even if headless
 
 WINDOW_SECONDS  = 5.0       # average over this window
 SAMPLE_PERIOD   = 0.9       # classify at most once per ~0.9s
@@ -55,11 +60,69 @@ def encode_image_b64(img_bgr, quality=JPEG_QUALITY):
         raise RuntimeError("JPEG encode failed")
     return base64.b64encode(buf).decode("ascii")
 
+def call_openai_vision(image_b64):
+    """
+    Ask OpenAI GPT-4 Vision for sentiment classification.
+    Return int in {-1,0,1}. On parse/HTTP error → 0.
+    """
+    import sys
+    prompt = (
+        "Classify this face expression. Output ONLY one integer:\n"
+        "1 = HAPPY/SMILING (mouth corners up)\n"
+        "-1 = SAD/FROWNING (mouth corners down / lip pressed out)\n"
+        "0 = NEUTRAL (relaxed)\n"
+        "Be decisive. Output only: 1, -1, or 0"
+    )
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
+            ]
+        }],
+        "max_tokens": 10
+    }
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        sys.stderr.write(f"[DEBUG] Calling OpenAI Vision API...\n")
+        sys.stderr.flush()
+        r = requests.post(OPENAI_URL, headers=headers, json=payload, timeout=TIMEOUT_SEC)
+        r.raise_for_status()
+        data = r.json()
+        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        sys.stderr.write(f"[DEBUG] OpenAI response: '{content}'\n")
+        sys.stderr.flush()
+        nums = re.findall(r'-?\d+', content)
+        if nums:
+            val = int(nums[0])
+            sys.stderr.write(f"[DEBUG] Extracted value: {val}\n")
+            sys.stderr.flush()
+            if val in (-1, 0, 1):
+                return val
+        return 0
+    except Exception as e:
+        sys.stderr.write(f"[ERROR] OpenAI Vision API error: {e}\n")
+        sys.stderr.flush()
+        return 0
+
 def call_vila_single_label(image_b64):
     """
     Ask VILA for EXACTLY one of: 1 (happy), -1 (sad), 0 (neutral).
     Return int in {-1,0,1}. On parse/HTTP error → 0.
+    Falls back to OpenAI if VILA fails.
     """
+    import sys
+
+    # If configured to use OpenAI, skip VILA
+    if USE_OPENAI:
+        return call_openai_vision(image_b64)
+
     prompt = (
         "Classify this face expression. Output ONLY one integer:\n"
         "1 = HAPPY/SMILING (mouth corners up)\n"
@@ -86,6 +149,8 @@ def call_vila_single_label(image_b64):
     }
 
     try:
+        sys.stderr.write(f"[DEBUG] Calling VILA API...\n")
+        sys.stderr.flush()
         r = requests.post(VILA_URL, headers=headers, json=payload, timeout=TIMEOUT_SEC)
         r.raise_for_status()
         data = r.json()
@@ -94,13 +159,24 @@ def call_vila_single_label(image_b64):
             text = "".join(p.get("text", "") for p in content)
         else:
             text = content or ""
+        sys.stderr.write(f"[DEBUG] VILA response: '{text}'\n")
+        sys.stderr.flush()
         nums = re.findall(r'-?\d+', text)
         if nums:
             val = int(nums[0])
+            sys.stderr.write(f"[DEBUG] Extracted value: {val}\n")
+            sys.stderr.flush()
             if val in (-1, 0, 1):
                 return val
+        sys.stderr.write(f"[DEBUG] No valid value found, returning 0\n")
+        sys.stderr.flush()
         return 0
-    except Exception:
+    except Exception as e:
+        sys.stderr.write(f"[ERROR] VILA API error: {e}, trying OpenAI fallback...\n")
+        sys.stderr.flush()
+        # Fallback to OpenAI if available
+        if OPENAI_API_KEY:
+            return call_openai_vision(image_b64)
         return 0
 
 def majority_vote_bias_non_neutral(values):
@@ -171,7 +247,14 @@ class Camera:
     The UI and inference read the latest frame without blocking.
     """
     def __init__(self, index=0, w=None, h=None):
-        self.cap = cv2.VideoCapture(index, cv2.CAP_AVFOUNDATION)
+        # Cross-platform camera backend (Windows: CAP_DSHOW, macOS: CAP_AVFOUNDATION, Linux: CAP_V4L2)
+        import platform
+        if platform.system() == "Windows":
+            self.cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+        elif platform.system() == "Darwin":  # macOS
+            self.cap = cv2.VideoCapture(index, cv2.CAP_AVFOUNDATION)
+        else:  # Linux
+            self.cap = cv2.VideoCapture(index)
         # Request capture resolution (driver may ignore)
         if w and h:
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH,  w)
@@ -210,7 +293,28 @@ class Camera:
 
 # ---------------- Main ----------------
 def main():
-    cam = Camera(CAMERA_INDEX, w=CAPTURE_WIDTH, h=CAPTURE_HEIGHT)
+    import sys
+
+    # DEBUG: Print all camera-related environment variables
+    sys.stderr.write("="*60 + "\n")
+    sys.stderr.write("CAMERA CONFIGURATION DEBUG\n")
+    sys.stderr.write("="*60 + "\n")
+    sys.stderr.write(f"CAMERA_INDEX env var: {os.environ.get('CAMERA_INDEX', 'NOT SET')}\n")
+    sys.stderr.write(f"CAMERA_INDEX value being used: {CAMERA_INDEX}\n")
+    sys.stderr.write(f"HEADLESS: {HEADLESS}\n")
+    sys.stderr.write(f"DEBUG_WINDOW: {DEBUG_WINDOW}\n")
+    sys.stderr.write("="*60 + "\n")
+    sys.stderr.flush()
+
+    # Initialize camera
+    try:
+        cam = Camera(CAMERA_INDEX, w=CAPTURE_WIDTH, h=CAPTURE_HEIGHT)
+        sys.stderr.write(f"✅ Camera initialized successfully (CAMERA_INDEX={CAMERA_INDEX})\n")
+        sys.stderr.flush()
+    except Exception as e:
+        sys.stderr.write(f"[ERROR] Camera initialization failed: {e}\n")
+        sys.stderr.flush()
+        return
 
     print("=== SIMPLE VILA EMOTION DETECTOR (auto, smooth) ===")
     print("Low-latency preview. 5s rolling average. ESC to quit.\n")
@@ -222,6 +326,8 @@ def main():
     last_window_final  = None
     countdown          = WINDOW_SECONDS
     last_face_box      = None   # reuse last bbox to avoid detecting every frame
+
+    import sys
 
     try:
         while True:
@@ -239,6 +345,12 @@ def main():
             if (now - last_detect_time) >= DETECT_PERIOD:
                 last_detect_time = now
                 last_face_box = detect_face_fast(frame)
+                if last_face_box:
+                    sys.stderr.write(f"[DEBUG] Face detected at {last_face_box}\n")
+                    sys.stderr.flush()
+                else:
+                    sys.stderr.write(f"[DEBUG] No face detected\n")
+                    sys.stderr.flush()
 
             # Draw bbox if we have one (mapped to preview coords)
             if last_face_box:
@@ -253,11 +365,16 @@ def main():
                 face_img = crop_face_with_margin(frame, last_face_box, FACE_MARGIN)
                 if face_img.size > 0:
                     try:
+                        sys.stderr.write(f"[DEBUG] Encoding face image (size: {face_img.shape})\n")
+                        sys.stderr.flush()
                         b64 = encode_image_b64(face_img, JPEG_QUALITY)
                         lab = call_vila_single_label(b64)
+                        sys.stderr.write(f"[DEBUG] Got sentiment label: {lab}\n")
+                        sys.stderr.flush()
                         window_labels.append(lab)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        sys.stderr.write(f"[ERROR] VILA API call failed: {e}\n")
+                        sys.stderr.flush()
 
             # Window rollover -> compute final
             elapsed = now - window_start
@@ -265,24 +382,38 @@ def main():
             if elapsed >= WINDOW_SECONDS:
                 if window_labels:
                     final = majority_vote_bias_non_neutral(window_labels)
+                    sys.stderr.write(f"[DEBUG] Window complete! Labels: {window_labels}, Final: {final}\n")
+                    sys.stderr.flush()
                     print(final)  # stdout for programmatic use
+                    sys.stdout.flush()
                     last_window_final = final
                 else:
+                    sys.stderr.write(f"[DEBUG] Window complete! No labels collected, returning 0\n")
+                    sys.stderr.flush()
                     print(0)
+                    sys.stdout.flush()
                     last_window_final = 0
                 window_labels.clear()
                 window_start = now
 
-            # HUD
-            if last_window_final is not None:
-                txt, color = label_text_and_color(last_window_final)
-                cv2.putText(display, txt, (16, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.95, color, 3)
-            cv2.putText(display, f"{countdown:0.1f}s", (16, 76), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,255,255), 2)
-            cv2.putText(display, f"samples:{len(window_labels)}", (16, 108), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200,200,200), 2)
+            # HUD and Display (show if not headless OR if debug window enabled)
+            if not HEADLESS or DEBUG_WINDOW:
+                if last_window_final is not None:
+                    txt, color = label_text_and_color(last_window_final)
+                    cv2.putText(display, txt, (16, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.95, color, 3)
+                cv2.putText(display, f"{countdown:0.1f}s", (16, 76), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,255,255), 2)
+                cv2.putText(display, f"samples:{len(window_labels)}", (16, 108), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200,200,200), 2)
 
-            cv2.imshow("VILA Emotion Detector (auto, smooth)", display)
-            if (cv2.waitKey(1) & 0xFF) == 27:
-                break
+                # Show camera info
+                cv2.putText(display, f"Camera: {CAMERA_INDEX}", (16, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,0), 2)
+                cv2.putText(display, f"Face: {'YES' if last_face_box else 'NO'}", (16, 172), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0) if last_face_box else (0,0,255), 2)
+
+                cv2.imshow("VILA Emotion Detector (auto, smooth)", display)
+                if (cv2.waitKey(1) & 0xFF) == 27:
+                    break
+            else:
+                # Headless mode - just a small sleep to prevent busy loop
+                time.sleep(0.01)
     finally:
         cam.release()
         cv2.destroyAllWindows()

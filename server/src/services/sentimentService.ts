@@ -1,5 +1,10 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface SentimentData {
   value: number; // -1 (sad), 0 (neutral), 1 (happy)
@@ -21,23 +26,37 @@ export class SentimentService extends EventEmitter {
   /**
    * Start the Python sentiment analysis script
    */
-  start(cameraIndex: number = 1): void {
+  start(cameraIndex: number = 0): void {  // Default to camera 0 (front camera)
     if (this.isRunning) {
       console.log('Sentiment service already running');
       return;
     }
 
-    const scriptPath = '../scripts/cam.py';
+    // Get absolute path to script (server/src/services -> root/scripts)
+    const scriptPath = path.join(__dirname, '..', '..', '..', 'scripts', 'cam.py');
+
+    // FORCE camera index to 0 (front camera)
+    const forcedCameraIndex = 0;
 
     console.log('Starting sentiment analysis service...');
+    console.log(`[SENTIMENT DEBUG] Requested Camera Index: ${cameraIndex}`);
+    console.log(`[SENTIMENT DEBUG] FORCED Camera Index: ${forcedCameraIndex}`);
+    console.log(`[SENTIMENT DEBUG] Script Path: ${scriptPath}`);
+    console.log(`[SENTIMENT DEBUG] NIM_API_KEY configured: ${process.env.NIM_API_KEY ? 'YES' : 'NO'}`);
 
     // Spawn Python process
     this.pythonProcess = spawn('python', [scriptPath], {
       env: {
         ...process.env,
-        CAMERA_INDEX: cameraIndex.toString(),
+        CAMERA_INDEX: forcedCameraIndex.toString(),  // HARDCODED TO 0
+        HEADLESS: 'true',
+        DEBUG_WINDOW: 'true',  // Show debug window
+        NIM_API_KEY: process.env.NIM_API_KEY || '',
+        OPENAI_KEY: process.env.OPENAI_KEY || process.env.OPENAI_API_KEY || '',
+        USE_OPENAI: 'true',  // Use OpenAI instead of NVIDIA for now
       },
       stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: process.cwd(),
     });
 
     this.isRunning = true;
@@ -45,11 +64,13 @@ export class SentimentService extends EventEmitter {
     // Handle stdout (sentiment values)
     this.pythonProcess.stdout?.on('data', (data: Buffer) => {
       const output = data.toString().trim();
+      console.log(`[SENTIMENT DEBUG] Raw stdout: "${output}"`);
 
       // Look for integer values (-1, 0, 1)
       const match = output.match(/^(-?\d+)$/);
       if (match) {
         const value = parseInt(match[1], 10);
+        console.log(`[SENTIMENT DEBUG] Parsed value: ${value}`);
 
         // Validate sentiment value
         if (value >= -1 && value <= 1) {
@@ -69,16 +90,20 @@ export class SentimentService extends EventEmitter {
           // Emit sentiment update
           this.emit('sentiment', sentimentData);
 
-          console.log(`Sentiment: ${value} (${this.getSentimentLabel(value)})`);
+          console.log(`[SENTIMENT] ${value} (${this.getSentimentLabel(value)}) - History length: ${this.sentimentHistory.length}`);
+        } else {
+          console.log(`[SENTIMENT DEBUG] Value ${value} out of range`);
         }
+      } else {
+        console.log(`[SENTIMENT DEBUG] No match found in output`);
       }
     });
 
     // Handle stderr (logs and errors)
     this.pythonProcess.stderr?.on('data', (data: Buffer) => {
-      const error = data.toString().trim();
-      console.error('Python script error:', error);
-      this.emit('error', error);
+      const message = data.toString().trim();
+      // Log to console but don't emit as error (Python uses stderr for debug logging)
+      console.log('Python script output:', message);
     });
 
     // Handle process exit
