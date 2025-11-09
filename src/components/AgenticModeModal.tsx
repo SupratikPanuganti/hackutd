@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Camera, Mic, Sparkles, Shield, Zap } from "lucide-react";
@@ -14,6 +15,7 @@ export const AgenticModeModal = ({ open, onOpenChange }: AgenticModeModalProps) 
   const { enableAgenticMode, markOnboardingComplete } = useAgentic();
   const { toast } = useToast();
   const [isEnabling, setIsEnabling] = useState(false);
+  const navigate = useNavigate();
 
   const handleEnable = async () => {
     setIsEnabling(true);
@@ -27,6 +29,7 @@ export const AgenticModeModal = ({ open, onOpenChange }: AgenticModeModalProps) 
           description: "Your AI assistant is now available throughout your journey.",
         });
         onOpenChange(false);
+        navigate("/assist", { state: { autoStartVoice: true } });
       } else {
         toast({
           title: "Permissions Required",

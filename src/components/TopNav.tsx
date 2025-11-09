@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, Bot } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -11,6 +11,7 @@ export const TopNav = () => {
   const [isTogglingAgent, setIsTogglingAgent] = useState(false);
   const { isEnabled, enableAgenticMode, disableAgenticMode } = useAgentic();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const links = [
@@ -40,6 +41,7 @@ export const TopNav = () => {
             title: "AI Agent Activated! 🎉",
             description: "Your AI assistant is now available throughout your journey.",
           });
+          navigate("/assist", { state: { autoStartVoice: true } });
         } else {
           toast({
             title: "Permissions Required",
@@ -57,7 +59,7 @@ export const TopNav = () => {
     } finally {
       setIsTogglingAgent(false);
     }
-  }, [disableAgenticMode, enableAgenticMode, isEnabled, isTogglingAgent, toast]);
+  }, [disableAgenticMode, enableAgenticMode, isEnabled, isTogglingAgent, navigate, toast]);
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/60 border-b border-border/50 shadow-lg">
