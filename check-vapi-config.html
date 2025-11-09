@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VAPI Configuration Check</title>
+</head>
+<body>
+    <h1>VAPI Configuration Checker</h1>
+    <div id="output"></div>
+
+    <script type="module">
+        const output = document.getElementById('output');
+
+        // Check what the environment variables are
+        const publicKey = import.meta.env.VITE_VAPI_PUBLIC_KEY;
+        const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID;
+
+        const DEFAULT_PUBLIC_KEY = "pk_local_dev_testing";
+        const DEFAULT_ASSISTANT_ID = "asst_local_dev_testing";
+
+        output.innerHTML = `
+            <h2>Environment Variables:</h2>
+            <p><strong>VITE_VAPI_PUBLIC_KEY:</strong> ${publicKey || 'NOT SET'}</p>
+            <p><strong>VITE_VAPI_ASSISTANT_ID:</strong> ${assistantId || 'NOT SET'}</p>
+
+            <h2>Configuration Check:</h2>
+            <p><strong>Public Key is set:</strong> ${publicKey ? '✅ YES' : '❌ NO'}</p>
+            <p><strong>Assistant ID is set:</strong> ${assistantId ? '✅ YES' : '❌ NO'}</p>
+            <p><strong>Public Key is NOT default:</strong> ${publicKey !== DEFAULT_PUBLIC_KEY ? '✅ YES' : '❌ NO (using default)'}</p>
+            <p><strong>Assistant ID is NOT default:</strong> ${assistantId !== DEFAULT_ASSISTANT_ID ? '✅ YES' : '❌ NO (using default)'}</p>
+
+            <h2>Final Result:</h2>
+            <p style="font-size: 20px; font-weight: bold;">
+                ${publicKey && assistantId && publicKey !== DEFAULT_PUBLIC_KEY && assistantId !== DEFAULT_ASSISTANT_ID
+                    ? '✅ VOICE INTEGRATION CONFIGURED CORRECTLY'
+                    : '❌ VOICE INTEGRATION NOT CONFIGURED'}
+            </p>
+
+            ${!publicKey || !assistantId || publicKey === DEFAULT_PUBLIC_KEY || assistantId === DEFAULT_ASSISTANT_ID
+                ? '<p style="color: red;"><strong>ACTION REQUIRED:</strong> Restart your frontend dev server (npm run dev)</p>'
+                : ''}
+        `;
+    </script>
+</body>
+</html>

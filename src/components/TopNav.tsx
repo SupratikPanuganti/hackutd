@@ -82,26 +82,44 @@ export const TopNav = () => {
         console.log('[TopNav] enableAgenticMode result:', success);
 
         if (success) {
+          // Enhanced logging to debug voice integration
+          console.log('[TopNav] 🔍 VOICE INTEGRATION CHECK:', {
+            isConfigured: isVoiceIntegrationConfigured(),
+            envVars: {
+              publicKey: import.meta.env.VITE_VAPI_PUBLIC_KEY ? '✅ SET' : '❌ NOT SET',
+              assistantId: import.meta.env.VITE_VAPI_ASSISTANT_ID ? '✅ SET' : '❌ NOT SET',
+            }
+          });
+
           if (isVoiceIntegrationConfigured()) {
             try {
-              console.log('[TopNav] Starting voice assistant...');
+              console.log('[TopNav] ✅ Voice configured! Starting voice assistant...');
               await startVoiceAssistant();
               toast({
                 title: "AI Agent Activated! 🎉",
                 description: "Your AI assistant is ready. Camera and microphone are active."
               });
             } catch (error) {
-              console.error('[TopNav] Failed to start voice assistant:', error);
+              console.error('[TopNav] ❌ Failed to start voice assistant:', error);
+              console.error('[TopNav] Error details:', {
+                message: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined
+              });
               toast({
-                title: "Agent Mode Enabled",
-                description: "Agent mode is active, but voice assistance couldn't start."
+                title: "Voice Failed",
+                description: `Voice couldn't start: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                variant: "destructive"
               });
             }
           } else {
-            console.log('[TopNav] Voice integration not configured');
+            console.warn('[TopNav] ⚠️ Voice integration NOT configured');
+            console.warn('[TopNav] Environment check:', {
+              VITE_VAPI_PUBLIC_KEY: import.meta.env.VITE_VAPI_PUBLIC_KEY || 'MISSING',
+              VITE_VAPI_ASSISTANT_ID: import.meta.env.VITE_VAPI_ASSISTANT_ID || 'MISSING',
+            });
             toast({
-              title: "Agent Mode Enabled",
-              description: "Agent mode is active with camera for sentiment analysis."
+              title: "Agent Mode Enabled (Camera Only)",
+              description: "Voice requires VAPI credentials. Restart frontend after adding them to .env"
             });
           }
         } else {
