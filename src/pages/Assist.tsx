@@ -11,6 +11,7 @@ const Assist = () => {
   const [sessionId] = useState(`sess_${Date.now()}`);
   const [currentState, setCurrentState] = useState("START");
   const [initialQuestion, setInitialQuestion] = useState<string | undefined>();
+  const [autoStartVoice, setAutoStartVoice] = useState(false);
   const [statusData, setStatusData] = useState({
     score: 0.46,
     sparkline: [0.71, 0.69, 0.65, 0.58, 0.52, 0.46],
@@ -24,6 +25,7 @@ const Assist = () => {
     if (location.state?.initialQuestion) {
       setInitialQuestion(location.state.initialQuestion);
     }
+    setAutoStartVoice(Boolean(location.state?.autoStartVoice));
   }, [location]);
 
   return (
@@ -53,6 +55,7 @@ const Assist = () => {
                 sessionId={sessionId} 
                 onStateChange={setCurrentState}
                 initialQuestion={initialQuestion}
+                autoStartVoice={autoStartVoice}
               />
                 </CardContent>
               </Card>

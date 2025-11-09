@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
+import { logVapiDebug, logVapiWarn } from '@/lib/vapiClient';
 
 interface AgenticPermissions {
   camera: boolean;
@@ -48,6 +49,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     setCurrentContext(location.pathname);
+    logVapiDebug("Agentic context route change", { pathname: location.pathname });
   }, [location.pathname]);
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       isEnabled,
       hasPermissions,
     }));
+    logVapiDebug("Agentic context persisted state", { isEnabled, hasPermissions });
   }, [isEnabled, hasPermissions]);
 
   const requestPermissions = async (): Promise<AgenticPermissions> => {
@@ -65,7 +68,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       permissions.microphone = true;
       micStream.getTracks().forEach(track => track.stop());
     } catch (error) {
-      console.log('Microphone permission denied:', error);
+      logVapiWarn('Microphone permission denied', error);
     }
 
     try {
@@ -73,46 +76,58 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       permissions.camera = true;
       camStream.getTracks().forEach(track => track.stop());
     } catch (error) {
-      console.log('Camera permission denied:', error);
+      logVapiWarn('Camera permission denied', error);
     }
 
     setHasPermissions(permissions);
+    logVapiDebug("Agentic permissions requested", permissions);
     return permissions;
   };
 
   const enableAgenticMode = async (): Promise<boolean> => {
+    logVapiDebug("enableAgenticMode invoked");
     const permissions = await requestPermissions();
     const hasAnyPermission = permissions.camera || permissions.microphone;
     
     if (hasAnyPermission) {
       setIsEnabled(true);
       setIsAssistantOpen(false);
+      logVapiDebug("Agentic mode enabled", { permissions });
       return true;
     }
     
+    logVapiWarn("Agentic mode enable failed - no permissions granted");
     return false;
   };
 
   const disableAgenticMode = () => {
     setIsEnabled(false);
     setIsAssistantOpen(false);
+    logVapiDebug("Agentic mode disabled");
   };
 
   const toggleAssistant = () => {
-    setIsAssistantOpen(prev => !prev);
+    setIsAssistantOpen(prev => {
+      const next = !prev;
+      logVapiDebug("Assistant toggle", { next });
+      return next;
+    });
   };
 
   const openAssistant = () => {
     setIsAssistantOpen(true);
+    logVapiDebug("Assistant opened");
   };
 
   const closeAssistant = () => {
     setIsAssistantOpen(false);
+    logVapiDebug("Assistant closed");
   };
 
   const markOnboardingComplete = () => {
     localStorage.setItem(ONBOARDING_KEY, 'true');
     setHasSeenOnboarding(true);
+    logVapiDebug("Onboarding marked complete");
   };
 
   return (

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCallback, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ export const TopNav = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { isEnabled, enableAgenticMode, disableAgenticMode } = useAgentic();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLSpanElement>(null);
@@ -100,6 +101,7 @@ export const TopNav = () => {
             title: "AI Agent Activated! 🎉",
             description: "Your AI assistant is now available throughout your journey.",
           });
+          navigate("/assist", { state: { autoStartVoice: true } });
         } else {
           toast({
             title: "Permissions Required",
@@ -117,7 +119,7 @@ export const TopNav = () => {
     } finally {
       setIsTogglingAgent(false);
     }
-  }, [disableAgenticMode, enableAgenticMode, isEnabled, isTogglingAgent, toast]);
+  }, [disableAgenticMode, enableAgenticMode, isEnabled, isTogglingAgent, navigate, toast]);
 
   return (
     <nav className={cn(
