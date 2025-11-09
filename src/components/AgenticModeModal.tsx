@@ -23,7 +23,7 @@ export const AgenticModeModal = ({ open, onOpenChange }: AgenticModeModalProps) 
       if (success) {
         markOnboardingComplete();
         toast({
-          title: "Agentic Mode Activated! 🎉",
+          title: "AI Agent Activated! 🎉",
           description: "Your AI assistant is now available throughout your journey.",
         });
         onOpenChange(false);
@@ -63,7 +63,7 @@ export const AgenticModeModal = ({ open, onOpenChange }: AgenticModeModalProps) 
             </div>
           </div>
           <DialogTitle className="text-2xl text-center">
-            Enable Agentic Mode
+            Enable AI Agent Mode
           </DialogTitle>
           <DialogDescription className="text-center text-base">
             Let our AI assistant guide you through every step with voice and visual support
@@ -125,7 +125,7 @@ export const AgenticModeModal = ({ open, onOpenChange }: AgenticModeModalProps) 
             className="w-full"
             disabled={isEnabling}
           >
-            {isEnabling ? "Enabling..." : "Enable Agentic Mode"}
+            {isEnabling ? "Enabling..." : "Enable AI Agent Mode"}
           </Button>
           <Button 
             onClick={handleMaybeLater} 

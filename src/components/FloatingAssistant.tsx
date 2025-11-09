@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Bot, X, Minimize2 } from "lucide-react";
+import { Bot, Minimize2 } from "lucide-react";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { ConversationPanel } from "@/components/assist/ConversationPanel";
 import { cn } from "@/lib/utils";
@@ -10,8 +10,6 @@ const getContextualGreeting = (path: string): string => {
   switch (path) {
     case "/plans":
       return "Need help choosing the perfect plan?";
-    case "/coverage":
-      return "Want to check coverage in your area?";
     case "/devices":
       return "Questions about device compatibility?";
     case "/status":
@@ -80,8 +78,8 @@ export const FloatingAssistant = () => {
                   <Bot className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">AI Assistant</h3>
-                  <p className="text-xs text-muted-foreground">Always here to help</p>
+                  <h3 className="font-semibold text-sm">Transcript</h3>
+                  <p className="text-xs text-muted-foreground">Conversation history</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -93,14 +91,6 @@ export const FloatingAssistant = () => {
                 >
                   <Minimize2 className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={closeAssistant}
-                  className="h-8 w-8"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
               </div>
             </div>
 
@@ -110,6 +100,7 @@ export const FloatingAssistant = () => {
                 sessionId={sessionId}
                 initialQuestion={initialQuestion}
                 isFloating={true}
+                readOnly={true}
               />
             </div>
           </Card>

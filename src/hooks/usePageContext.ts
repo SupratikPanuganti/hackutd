@@ -36,18 +36,6 @@ export const usePageContext = (): PageContext => {
             'Can I change my plan later?',
           ],
         };
-      case '/coverage':
-        return {
-          path: '/coverage',
-          name: 'Coverage',
-          description: 'Check coverage in your area',
-          quickPrompts: [
-            'Check my area coverage',
-            'Why is coverage weak here?',
-            'Will coverage improve soon?',
-            'What affects signal strength?',
-          ],
-        };
       case '/devices':
         return {
           path: '/devices',
@@ -63,7 +51,7 @@ export const usePageContext = (): PageContext => {
       case '/status':
         return {
           path: '/status',
-          name: 'Network Status',
+          name: 'Network',
           description: 'Check network status',
           quickPrompts: [
             'Check network status',

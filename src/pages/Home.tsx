@@ -4,28 +4,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Shield, Zap, Globe } from "lucide-react";
 import { TopNav } from "@/components/TopNav";
-import { Footer } from "@/components/Footer";
 import { AgenticModeModal } from "@/components/AgenticModeModal";
 import { useAgentic } from "@/contexts/AgenticContext";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const Home = () => {
   const { hasSeenOnboarding } = useAgentic();
   const [showModal, setShowModal] = useState(false);
+  const hasInitializedModal = useRef(false);
 
+  // Show modal on first visit
   useEffect(() => {
-    if (!hasSeenOnboarding) {
-      const timer = setTimeout(() => {
-        setShowModal(true);
-      }, 2000);
-      return () => clearTimeout(timer);
+    if (hasSeenOnboarding) {
+      return;
+    }
+
+    if (hasInitializedModal.current) {
+      return;
+    }
+
+    hasInitializedModal.current = true;
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hasShownThisSession = sessionStorage.getItem("tcare_home_modal_shown") === "true";
+
+    if (!hasShownThisSession) {
+      setShowModal(true);
+      sessionStorage.setItem("tcare_home_modal_shown", "true");
     }
   }, [hasSeenOnboarding]);
 
   return (
     <div className="min-h-screen flex flex-col">
       <TopNav />
+      <AgenticModeModal open={showModal} onOpenChange={setShowModal} />
       
       {/* Hero Section */}
       <section className="relative py-20 md:py-32 overflow-hidden">
@@ -49,9 +65,9 @@ const Home = () => {
                   View Plans <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/coverage">
+              <Link to="/status">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                  Check Coverage
+                  Network Status
                 </Button>
               </Link>
             </div>
@@ -92,9 +108,9 @@ const Home = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Link to="/coverage">
+                <Link to="/status">
                   <Button variant="ghost" className="group">
-                    View Coverage
+                    Network Status
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -160,10 +176,6 @@ const Home = () => {
           </Link>
         </div>
       </section>
-
-      <Footer />
-      
-      <AgenticModeModal open={showModal} onOpenChange={setShowModal} />
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { TopNav } from "@/components/TopNav";
-import { Footer } from "@/components/Footer";
 import { ConversationPanel } from "@/components/assist/ConversationPanel";
 import { StatusCard } from "@/components/assist/StatusCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,8 +99,6 @@ const Assist = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };
