@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { incidents, towers } from "@/lib/mockData";
 import { CheckCircle, AlertCircle, X } from "lucide-react";
 import { MapboxMap } from "@/components/MapboxMap";
-import { MapboxDebug } from "@/components/MapboxDebug";
 
 interface TowerDetails {
   id: string;
@@ -32,11 +31,6 @@ const NetworkStatus = () => {
         <div className="backdrop-blur-xl bg-black/30 border-b border-white/10 shadow-2xl">
           <TopNav />
         </div>
-      </div>
-
-      {/* Debug Panel - Top Left */}
-      <div className="fixed left-4 top-24 z-30 w-96 pointer-events-auto">
-        <MapboxDebug />
       </div>
 
       {/* Tower Details Sidebar - Glassmorphic */}

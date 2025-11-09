@@ -4,19 +4,8 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { towers } from "@/lib/mockData";
 import { getMapboxToken, hasCustomMapboxToken } from "@/lib/mapbox";
 
-// Get Mapbox token from environment variable(s)
 const MAPBOX_TOKEN = getMapboxToken();
 const USING_CUSTOM_TOKEN = hasCustomMapboxToken();
-
-// Debug: Log all environment variables
-console.log("🔍 DEBUG: Environment Variables");
-console.log("- import.meta.env:", import.meta.env);
-console.log("- VITE_MAPBOX_ACCESS_TOKEN:", import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
-console.log("- MAPBOX_ACCESS_TOKEN:", import.meta.env.MAPBOX_ACCESS_TOKEN);
-console.log("- Token being used:", MAPBOX_TOKEN);
-console.log("- Token starts with 'pk.':", MAPBOX_TOKEN.startsWith('pk.'));
-console.log("- Token length:", MAPBOX_TOKEN.length);
-console.log("- Using custom token:", USING_CUSTOM_TOKEN ? "✓ Yes" : "✗ No");
 
 interface MapboxMapProps {
   className?: string;
@@ -31,15 +20,7 @@ export const MapboxMap = ({ className, onTowerClick }: MapboxMapProps) => {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    // Debug: Check if token is loaded
-    console.log("🗺️ Initializing Mapbox Map...");
-    console.log("- Token exists:", MAPBOX_TOKEN ? "✓ Yes" : "✗ No");
-    console.log("- Token value:", MAPBOX_TOKEN);
-    console.log("- Token valid format:", MAPBOX_TOKEN.startsWith('pk.') ? "✓ Yes" : "✗ No");
-    console.log("- Using fallback token:", USING_CUSTOM_TOKEN ? "✗ No" : "✓ Yes");
-    
     mapboxgl.accessToken = MAPBOX_TOKEN;
-    console.log("- mapboxgl.accessToken set to:", mapboxgl.accessToken);
 
     try {
       map.current = new mapboxgl.Map({
@@ -55,30 +36,18 @@ export const MapboxMap = ({ className, onTowerClick }: MapboxMapProps) => {
 
       // Add tower markers after map loads
       map.current.on("load", () => {
-        console.log("✅ SUCCESS: Mapbox map loaded successfully!");
-        console.log("- Adding", towers.length, "tower markers...");
-        
-        // Add tower markers
         towers.forEach((tower) => {
           const marker = addTowerMarker(tower, map.current!, onTowerClick);
           markersRef.current.push(marker);
         });
-        console.log("✅ All tower markers added!");
       });
 
       // Log any errors
       map.current.on("error", (e) => {
-        console.error("❌ MAPBOX ERROR:", e);
-        console.error("- Error type:", e.error?.message || 'Unknown');
-        console.error("- This usually means:");
-        console.error("  1. Invalid or expired access token");
-        console.error("  2. Network connectivity issue");
-        console.error("  3. Token doesn't have proper permissions");
+        console.error("Mapbox error", e);
       });
     } catch (error) {
-      console.error("❌ CRITICAL: Failed to initialize Mapbox:", error);
-      console.error("- Make sure you have a valid Mapbox token in .env file");
-      console.error("- Token should be: VITE_MAPBOX_ACCESS_TOKEN=pk.your_token_here");
+      console.error("Failed to initialize Mapbox", error);
     }
 
     return () => {

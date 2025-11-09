@@ -1,5 +1,5 @@
 const FALLBACK_TOKEN =
-  "pk.eyJ1IjoibG92YWJsZS1kZW1vIiwiYSI6ImNtM3I2ODJ5aTBqanEyanM5bzg0aWd2eXMifQ.b8bH9JxHXrLWDPzTqCGfQg";
+  "pk.eyJ1Ijoic3BhbnVnYW50aTMxIiwiYSI6ImNtaDVwbzBlYzA1bTkybnB6azQxZnEwOGEifQ.eCNufvFartJqVo8Nwkwkeg";
 
 const getEnvToken = () => {
   const candidates = [
