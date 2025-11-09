@@ -175,8 +175,9 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // WebSocket connection for sentiment streaming
   useEffect(() => {
-    // Only connect WebSocket when Agent Mode is enabled AND camera permission granted
-    if (!isEnabled || !hasPermissions.camera) {
+    // Only connect WebSocket when Agent Mode is enabled
+    // Note: We don't need camera permission here because the backend handles the camera
+    if (!isEnabled) {
       // Cleanup if Agent Mode is disabled
       if (wsRef.current) {
         wsRef.current.close();
@@ -207,8 +208,8 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
                 label: getSentimentLabel(message.data.value),
               };
 
-              console.log('[SENTIMENT DEBUG] Received sentiment:', sentimentData);
-
+              // If we're receiving sentiment data, the service must be running
+              setIsSentimentServiceRunning(true);
               setCurrentSentiment(sentimentData);
               setSentimentHistory(prev => {
                 const updated = [...prev, sentimentData];
@@ -221,7 +222,6 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
                 calculateTrend();
               }
             } else if (message.type === 'status') {
-              console.log('[SENTIMENT DEBUG] Service status:', message.data.running);
               setIsSentimentServiceRunning(message.data.running);
             }
           } catch (error) {
@@ -237,8 +237,8 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
           logVapiDebug('Sentiment WebSocket closed');
           wsRef.current = null;
 
-          // Attempt reconnect after 5 seconds
-          if (isEnabled && hasPermissions.camera) {
+          // Attempt reconnect after 5 seconds if Agent Mode still enabled
+          if (isEnabled) {
             reconnectTimeoutRef.current = window.setTimeout(() => {
               logVapiDebug('Attempting to reconnect sentiment WebSocket');
               connectWebSocket();
@@ -262,7 +262,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEnabled, hasPermissions.camera]);
+  }, [isEnabled]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
