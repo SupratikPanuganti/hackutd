@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TopNav } from "@/components/TopNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { TicketDialog } from "@/components/assist/TicketDialog";
 import { ConversationPanel } from "@/components/assist/ConversationPanel";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { Badge } from "@/components/ui/badge";
+import LiquidEther from "@/components/LiquidEther";
 
 const Help = () => {
   const { sessionId } = useAgentic();
@@ -14,6 +15,10 @@ const Help = () => {
   const [initialPrompt, setInitialPrompt] = useState<string | undefined>();
   const [promptSignal, setPromptSignal] = useState(0);
   const conversationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const quickPrompts = [
     "My internet isn't working",
@@ -59,11 +64,55 @@ const Help = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#5A0040]">
-      <TopNav />
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Full Page Three.js Background */}
+      <div className="fixed inset-0 z-0 bg-black">
+        <LiquidEther
+          colors={['#000000', '#5A0040', '#E20074']}
+          mouseForce={20}
+          cursorSize={100}
+          isViscous={false}
+          viscous={30}
+          iterationsViscous={32}
+          iterationsPoisson={32}
+          resolution={0.5}
+          isBounce={false}
+          autoDemo={true}
+          autoSpeed={0.5}
+          autoIntensity={2.2}
+          takeoverDuration={0.25}
+          autoResumeDelay={3000}
+          autoRampDuration={0.6}
+        />
+      </div>
 
-      <main className="flex-1 relative pb-16">
-        <section className="py-8 pt-24">
+      {/* Gradient Overlay for Depth */}
+      <div className="fixed inset-0 z-[1] bg-gradient-to-b from-[#5A0040]/20 via-transparent to-[#E20074]/30 pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col">
+        <TopNav />
+
+        <main className="flex-1 relative pb-16">
+        {/* AI Chatbot */}
+        <section className="py-8 pt-24" ref={conversationRef}>
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold mb-6 text-center text-white drop-shadow-md">Chat with AI Assistant</h2>
+              <p className="text-center text-white/90 mb-8 drop-shadow-md">
+                Get instant help with network issues, device setup, and troubleshooting
+              </p>
+              <Card className="h-[600px] rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10">
+                <ConversationPanel
+                  sessionId={sessionId}
+                  initialQuestion={initialPrompt}
+                  questionSignal={promptSignal}
+                />
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-12">
           <div className="container mx-auto px-4 space-y-8">
             <Card className="rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10">
               <CardHeader className="pb-2 md:pb-4">
@@ -116,25 +165,6 @@ const Help = () => {
           </div>
         </section>
 
-        {/* AI Chatbot */}
-        <section className="py-12" ref={conversationRef}>
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-2xl font-bold mb-6 text-center text-white drop-shadow-md">Chat with AI Assistant</h2>
-              <p className="text-center text-white/90 mb-8 drop-shadow-md">
-                Get instant help with network issues, device setup, and troubleshooting
-              </p>
-              <Card className="h-[600px] rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10">
-                <ConversationPanel
-                  sessionId={sessionId}
-                  initialQuestion={initialPrompt}
-                  questionSignal={promptSignal}
-                />
-              </Card>
-            </div>
-          </div>
-        </section>
-
         {/* Fallback Support */}
         <section className="py-12">
           <div className="container mx-auto px-4">
@@ -161,10 +191,11 @@ const Help = () => {
             </div>
           </div>
         </section>
-      </main>
+        </main>
+      </div>
 
-      <TicketDialog 
-        open={ticketDialogOpen} 
+      <TicketDialog
+        open={ticketDialogOpen}
         onOpenChange={setTicketDialogOpen}
         initialIssue={ticketInitialIssue}
       />
