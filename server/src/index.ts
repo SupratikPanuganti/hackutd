@@ -10,6 +10,7 @@ import { SentimentService, SentimentData } from './services/sentimentService.js'
 import { DecisionEngine, MultimodalContext } from './services/decisionEngine.js';
 import { telegramService, TelegramNotification } from './services/telegramService.js';
 import { AutonomousAgent, AgenticContext } from './services/autonomousAgent.js';
+import { emailService, SOSEmailData, SupportTicketData } from './services/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +23,14 @@ if (envConfig.error) {
 } else {
   const parsedKeys = Object.keys(envConfig.parsed ?? {});
   console.log('[ENV DEBUG] Loaded .env keys:', parsedKeys.length ? parsedKeys : 'none');
+}
+
+// Initialize services that depend on environment variables
+try {
+  // Telegram service reads TELEGRAM_BOT_TOKEN from env -> initialize now
+  telegramService.init();
+} catch (err) {
+  console.error('[ENV DEBUG] Failed to initialize telegramService after loading .env:', err);
 }
 
 const envKeyStatus = (key: string) => {
@@ -428,6 +437,15 @@ app.post('/api/admin/parallel-extract', async (req, res) => {
 // Telegram Notification endpoint - Send tower status notification
 app.post('/api/notifications/telegram/tower-status', async (req, res) => {
   try {
+    // Check if telegram service is configured
+    if (!telegramService.isServiceConfigured()) {
+      return res.status(503).json({
+        success: false,
+        error: 'Telegram service not configured',
+        message: 'TELEGRAM_BOT_TOKEN not set in environment variables',
+      });
+    }
+
     const { chatId, towerId, towerRegion, status, userLocation } = req.body;
 
     if (!chatId) {
@@ -497,14 +515,14 @@ app.post('/api/notifications/telegram/test', async (req, res) => {
   try {
     const { chatId } = req.body;
     const testChatId = chatId || '5367833555'; // Default to user's chat ID
-    
+
     console.log('[Telegram Test] Sending test message to:', testChatId);
-    
+
     const result = await telegramService.sendMessage(
       testChatId,
       '🧪 <b>Test Message</b>\n\nThis is a test message from the Tower Status system. If you received this, Telegram notifications are working!'
     );
-    
+
     if (result.success) {
       res.json({
         success: true,
@@ -571,6 +589,122 @@ app.post('/api/admin/gemini-analyze', async (req, res) => {
   }
 });
 
+// Email Service Endpoints
+
+// Send SOS emergency notification via email
+app.post('/api/notifications/email/sos', async (req, res) => {
+  try {
+    const sosData: SOSEmailData = req.body;
+
+    if (!sosData.timestamp) {
+      return res.status(400).json({
+        error: 'Timestamp is required',
+      });
+    }
+
+    console.log('[Email API] Sending SOS notification email');
+    console.log('[Email API] SOS data:', JSON.stringify(sosData, null, 2));
+
+    const result = await emailService.sendSOSNotification(sosData);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'SOS email notification sent successfully',
+        messageId: result.messageId,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to send SOS email notification',
+      });
+    }
+  } catch (error) {
+    console.error('[Email API] Error sending SOS email:', error);
+    res.status(500).json({
+      error: 'Failed to send SOS email notification',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Check email service configuration status
+app.get('/api/notifications/email/status', (req, res) => {
+  res.json({
+    configured: emailService.isServiceConfigured(),
+    ready: emailService.isServiceConfigured(),
+  });
+});
+
+// Send test email to verify configuration
+app.post('/api/notifications/email/test', async (req, res) => {
+  try {
+    console.log('[Email API] Sending test email');
+
+    const result = await emailService.sendTestEmail();
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Test email sent successfully',
+        messageId: result.messageId,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to send test email',
+      });
+    }
+  } catch (error) {
+    console.error('[Email API] Error sending test email:', error);
+    res.status(500).json({
+      error: 'Failed to send test email',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Send support ticket via email
+app.post('/api/notifications/email/support-ticket', async (req, res) => {
+  try {
+    const ticketData: SupportTicketData = req.body;
+
+    if (!ticketData.userEmail || !ticketData.subject || !ticketData.description) {
+      return res.status(400).json({
+        error: 'Missing required fields: userEmail, subject, description',
+      });
+    }
+
+    if (!ticketData.timestamp) {
+      ticketData.timestamp = new Date().toISOString();
+    }
+
+    console.log('[Email API] Sending support ticket email');
+    console.log('[Email API] Ticket data:', JSON.stringify(ticketData, null, 2));
+
+    const result = await emailService.sendSupportTicket(ticketData);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Support ticket email sent successfully',
+        messageId: result.messageId,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to send support ticket email',
+      });
+    }
+  } catch (error) {
+    console.error('[Email API] Error sending support ticket email:', error);
+    res.status(500).json({
+      error: 'Failed to send support ticket email',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Start server
 server.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
@@ -588,6 +722,10 @@ server.listen(PORT, () => {
   console.log(`  GET  /api/notifications/telegram/status`);
   console.log(`  POST /api/notifications/telegram/test`);
   console.log(`  POST /api/agent/decide`);
+  console.log(`  POST /api/notifications/email/sos`);
+  console.log(`  GET  /api/notifications/email/status`);
+  console.log(`  POST /api/notifications/email/test`);
+  console.log(`  POST /api/notifications/email/support-ticket`);
   console.log(`  POST /api/admin/parallel-extract`);
   console.log(`  POST /api/admin/gemini-analyze`);
   console.log('\nReady to accept connections!');

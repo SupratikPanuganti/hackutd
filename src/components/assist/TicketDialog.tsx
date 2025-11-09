@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { submitSupportTicket } from "@/lib/supportTicket";
+import { useUser } from "@/contexts/UserContext";
 
 interface TicketDialogProps {
   open: boolean;
@@ -13,6 +15,7 @@ interface TicketDialogProps {
 }
 
 export const TicketDialog = ({ open, onOpenChange, initialIssue = "" }: TicketDialogProps) => {
+  const { user } = useUser();
   const [subject, setSubject] = useState(initialIssue);
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
@@ -21,25 +24,57 @@ export const TicketDialog = ({ open, onOpenChange, initialIssue = "" }: TicketDi
   useEffect(() => {
     if (!open) return;
     setSubject(initialIssue);
-  }, [initialIssue, open]);
+    // Pre-fill email if user is logged in
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [initialIssue, open, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate ticket creation
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Send support ticket via email
+      const result = await submitSupportTicket({
+        userEmail: email,
+        userName: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : undefined,
+        subject: subject,
+        description: description,
+        priority: 'medium',
+        category: 'General Support',
+      });
 
-    toast({
-      title: "Ticket Created",
-      description: "We've received your support ticket and will respond within 24 hours.",
-    });
+      if (result.success) {
+        toast({
+          title: "✅ Support Ticket Submitted!",
+          description: "We've received your ticket and sent a confirmation email. Our team will respond within 24 hours.",
+        });
 
-    setIsSubmitting(false);
-    onOpenChange(false);
-    setSubject("");
-    setDescription("");
-    setEmail("");
+        // Reset form
+        onOpenChange(false);
+        setSubject("");
+        setDescription("");
+        if (!user?.email) {
+          setEmail("");
+        }
+      } else {
+        toast({
+          title: "Failed to Submit Ticket",
+          description: result.error || "Please try again or contact support directly.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting support ticket:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
