@@ -1,0 +1,191 @@
+/* Branding, fonts, and glass styles - small, focused file to reduce Tailwind utility usage */
+
+/* Professional, modern font */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --brand-font: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+
+  /* Glass palette */
+  --glass-bg: rgba(255,255,255,0.55);
+  --glass-border: rgba(255,255,255,0.6);
+  --glass-accent: rgba(226,0,116,0.12);
+  --glass-highlight: rgba(255,255,255,0.6);
+
+  /* Liquid accent gradient */
+  --liquid-1: rgba(226,0,116,0.95);
+  --liquid-2: rgba(99,102,241,0.92);
+  --liquid-3: rgba(119,84,255,0.7);
+
+  --nav-height: 72px;
+}
+
+/* Brand font utility */
+.brand-font, body {
+  font-family: var(--brand-font);
+}
+
+/* Glass screen: main container you can wrap pages with */
+.glass-screen {
+  min-height: 100vh;
+  background: linear-gradient(135deg, rgba(15,23,42,0.02), rgba(255,255,255,0.02));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Glass card - soft, dynamic glassmorphism */
+.glass-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.42));
+  border: 1px solid rgba(255,255,255,0.6);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.12);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 60px rgba(2,6,23,0.16);
+}
+
+/* Liquid nav: posh, glossy navbar with subtle motion */
+.liquid-nav {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35));
+  border-bottom: 1px solid rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  box-shadow: 0 8px 30px rgba(2,6,23,0.06);
+}
+
+/* animated colored sheen that slowly moves */
+.liquid-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(600px 120px at 10% 10%, var(--liquid-1), transparent 15%), radial-gradient(500px 100px at 90% 80%, var(--liquid-2), transparent 20%);
+  opacity: 0.14;
+  pointer-events: none;
+  transform-origin: center;
+  animation: shimmer 10s linear infinite;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(0) translateY(0) scale(1); }
+  50% { transform: translateX(-6%) translateY(1%) scale(1.02); }
+  100% { transform: translateX(0) translateY(0) scale(1); }
+}
+
+/* container for nav content to keep layout consistent */
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: rgba(3,7,18,0.95);
+}
+
+.brand-logo .accent {
+  background: linear-gradient(90deg, var(--liquid-1), var(--liquid-2), var(--liquid-3));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* nav links and buttons - prefer classes over tailwind utilities */
+.nav-links {
+  display: none; /* mobile-first, show on larger */
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.nav-button {
+  background: transparent;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  color: rgba(3,7,18,0.9);
+  font-weight: 600;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.nav-button:hover {
+  background: rgba(3,7,18,0.04);
+  transform: translateY(-2px);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* responsive toggles */
+@media (min-width: 768px) {
+  .nav-links { display: flex; }
+  .mobile-toggle { display: none; }
+}
+
+/* mobile menu area (keeps original collapse behavior) */
+.nav-mobile-area {
+  overflow: hidden;
+  transition: max-height 0.32s cubic-bezier(.2,.9,.3,1), padding 0.2s ease;
+}
+
+.nav-mobile-area.collapsed { max-height: 0; padding-bottom: 0; }
+.nav-mobile-area.open { max-height: 520px; padding-bottom: 1rem; }
+
+/* small helper for badge within nav */
+.nav-badge { display: inline-flex; gap: 0.25rem; align-items: center; padding: 0.25rem 0.5rem; border-radius: 8px; font-weight:600; }
+
+/* Small utility to reduce Tailwind usage for sign-in button */
+.btn-outline {
+  padding: 0.4rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(3,7,18,0.08);
+  background: transparent;
+  font-weight: 600;
+}
+
+/* subtle focus state for keyboard users */
+.liquid-nav a:focus, .liquid-nav button:focus {
+  outline: 3px solid rgba(99,102,241,0.12);
+  outline-offset: 3px;
+}
+
+/* glass card variants */
+.glass-card--accent {
+  background: linear-gradient(180deg, rgba(226,0,116,0.06), rgba(99,102,241,0.04));
+  border: 1px solid rgba(226,0,116,0.08);
+}
+
+/* small utility for central layout used by app pages */
+.main-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 1rem;
+}

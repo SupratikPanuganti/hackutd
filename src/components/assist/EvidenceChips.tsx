@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { ExternalLink, FileText, AlertCircle, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface EvidenceItem {
@@ -15,15 +14,15 @@ interface EvidenceChipsProps {
 const getIcon = (kind: string) => {
   switch (kind) {
     case "status":
-      return <AlertCircle className="h-4 w-4" />;
+      return "⚠";
     case "logs":
-      return <FileText className="h-4 w-4" />;
+      return "📄";
     case "ticket":
-      return <ExternalLink className="h-4 w-4" />;
+      return "🔗";
     case "kb":
-      return <BookOpen className="h-4 w-4" />;
+      return "📚";
     default:
-      return <ExternalLink className="h-4 w-4" />;
+      return "🔗";
   }
 };
 
@@ -37,10 +36,10 @@ export const EvidenceChips = ({ items }: EvidenceChipsProps) => {
           <Button 
             variant="outline" 
             size="sm" 
-            className="h-7 text-xs"
+            className="h-7 text-xs rounded-xl bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
             data-testid={`evidence-chip-${item.kind}`}
           >
-            {getIcon(item.kind)}
+            <span>{getIcon(item.kind)}</span>
             <span className="ml-1">{item.label}</span>
           </Button>
         </Link>

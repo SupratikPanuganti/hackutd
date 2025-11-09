@@ -2,7 +2,6 @@ import { useState } from "react";
 import { TopNav } from "@/components/TopNav";
 import { Badge } from "@/components/ui/badge";
 import { incidents, towers } from "@/lib/mockData";
-import { CheckCircle, AlertCircle, X } from "lucide-react";
 import { MapboxMap } from "@/components/MapboxMap";
 
 interface TowerDetails {
@@ -26,12 +25,8 @@ const NetworkStatus = () => {
         />
       </div>
 
-      {/* Glassmorphic Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-20">
-        <div className="backdrop-blur-xl bg-black/30 border-b border-white/10 shadow-2xl">
-          <TopNav />
-        </div>
-      </div>
+      {/* TopNav with liquid glass styling */}
+      <TopNav />
 
       {/* Tower Details Sidebar - Glassmorphic */}
       {selectedTower && (
@@ -47,9 +42,9 @@ const NetworkStatus = () => {
                 </div>
                 <button 
                   onClick={() => setSelectedTower(null)}
-                  className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white/60 text-xl"
                 >
-                  <X className="h-5 w-5 text-white/60" />
+                  ×
                 </button>
               </div>
               <Badge 
@@ -61,15 +56,9 @@ const NetworkStatus = () => {
                 } backdrop-blur-sm`}
               >
                 {selectedTower.health === "ok" ? (
-                  <>
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Operational
-                  </>
+                  <>✓ Operational</>
                 ) : (
-                  <>
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Degraded
-                  </>
+                  <>⚠ Degraded</>
                 )}
               </Badge>
             </div>
