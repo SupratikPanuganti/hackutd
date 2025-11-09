@@ -71,7 +71,7 @@ export const deviceImages: Record<string, string> = {
   "pixel-9": "https://xjmzqlilkmbbpkjjpghu.supabase.co/storage/v1/object/public/device-pics/google-pixel9.webp",
   "galaxy-s25": "https://xjmzqlilkmbbpkjjpghu.supabase.co/storage/v1/object/public/device-pics/galazy-s25.jpeg",
   "oneplus-12": "https://xjmzqlilkmbbpkjjpghu.supabase.co/storage/v1/object/public/device-pics/oneplus-12.jpeg",
-  "galaxy-a54": "https://xjmzqlilkmbbpkjjpghu.supabase.co/storage/v1/object/public/device-pics/samsung-galaxy-a54-5g-featured.png",
+  "galaxy-a54": "https://xjmzqlilkmbbpkjjpghu.supabase.co/storage/v1/object/public/device-pics/a54%20(1).jpeg",
 };
 
 export const devices = [

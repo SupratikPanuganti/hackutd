@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getServicePlans } from "@/lib/supabaseService";
+import { ServicePlan } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import {
   Accordion,
@@ -15,12 +16,12 @@ import {
 import LiquidEther from "@/components/LiquidEther";
 
 const Plans = () => {
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error } = useQuery<ServicePlan[]>({
     queryKey: ["service-plans"],
     queryFn: getServicePlans,
   });
 
-  const plans = data ?? [];
+  const plans: ServicePlan[] = data ?? [];
   const isMockData = useMemo(
     () => plans.length > 0 && plans.every((plan) => plan._fromDatabase === false),
     [plans],
