@@ -6,11 +6,13 @@ import { Smile, Meh, Frown } from "lucide-react";
 export const SentimentDisplay = () => {
   const { currentSentiment, isSentimentServiceRunning, isEnabled } = useAgentic();
 
-  if (!isEnabled || !isSentimentServiceRunning) {
+  // Only show when Agent Mode is enabled
+  if (!isEnabled) {
     return null;
   }
 
   const getSentimentIcon = () => {
+    if (!isSentimentServiceRunning) return <Meh className="w-4 h-4" />;
     if (!currentSentiment) return <Meh className="w-4 h-4" />;
 
     if (currentSentiment.value > 0) {
@@ -22,6 +24,7 @@ export const SentimentDisplay = () => {
   };
 
   const getSentimentColor = () => {
+    if (!isSentimentServiceRunning) return "bg-gray-500/20 text-gray-200 border-gray-400/30";
     if (!currentSentiment) return "bg-gray-500/20 text-gray-200 border-gray-400/30";
 
     if (currentSentiment.value > 0) {
@@ -33,23 +36,27 @@ export const SentimentDisplay = () => {
   };
 
   const getSentimentLabel = () => {
+    if (!isSentimentServiceRunning) return "Starting...";
     if (!currentSentiment) return "Detecting...";
     return currentSentiment.label || "Neutral";
   };
 
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "inline-flex items-center gap-2 rounded-xl px-3 py-2 backdrop-blur-sm border transition-all duration-300",
-        getSentimentColor(),
-        "animate-pulse-subtle"
-      )}
-    >
-      {getSentimentIcon()}
-      <span className="text-xs font-medium">
-        {getSentimentLabel()}
-      </span>
-    </Badge>
+    <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm border">
+      <span className="text-xs font-medium">Sentiment:</span>
+      <Badge
+        variant="outline"
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-lg px-2 py-1 backdrop-blur-sm border transition-all duration-300",
+          getSentimentColor(),
+          "animate-pulse-subtle"
+        )}
+      >
+        {getSentimentIcon()}
+        <span className="text-xs font-medium">
+          {getSentimentLabel()}
+        </span>
+      </Badge>
+    </div>
   );
 };
