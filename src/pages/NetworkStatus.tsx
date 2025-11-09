@@ -411,12 +411,22 @@ const NetworkStatus = () => {
     parts.push('NETWORK STATUS PAGE - Live Tower Status & Incidents');
     parts.push('');
 
+    // 🚨 CRITICAL ANTI-HALLUCINATION RULES
+    parts.push('🚨 TOWER DATA RULES - DO NOT HALLUCINATE:');
+    parts.push('- ALL towers shown are in TEXAS (Dallas/Fort Worth area)');
+    parts.push('- NEVER mention Atlanta or any location outside Texas');
+    parts.push('- Demo behavior: ONE Dallas tower may go degraded temporarily (~7 seconds)');
+    parts.push('- Degraded towers automatically come back online quickly');
+    parts.push('- ONLY discuss towers listed below - DO NOT invent tower locations');
+    parts.push('- If asked about other cities: "Our displayed towers are in the Texas region"');
+    parts.push('');
+
     // Tower overview
     if (towers.length > 0) {
       const okTowers = towers.filter(t => t.health === 'ok').length;
       const degradedTowers = towers.filter(t => t.health !== 'ok').length;
       parts.push(`NETWORK OVERVIEW:`);
-      parts.push(`- Total Towers: ${towers.length}`);
+      parts.push(`- Total Towers: ${towers.length} (ALL in Texas)`);
       parts.push(`- Operational: ${okTowers}`);
       parts.push(`- Degraded: ${degradedTowers}`);
       parts.push('');
