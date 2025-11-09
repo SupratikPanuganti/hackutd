@@ -8,12 +8,10 @@ import { isVoiceIntegrationConfigured } from "@/lib/vapiClient";
 import { useToast } from "@/hooks/use-toast";
 import { SentimentDisplay } from "@/components/SentimentDisplay";
 import { useUser } from "@/contexts/UserContext";
-import { AgentPermissionsDialog } from "@/components/AgentOnboardingDialog";
 
 export const TopNav = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTogglingAgent, setIsTogglingAgent] = useState(false);
-  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hoveringPath, setHoveringPath] = useState<string | null>(null); // NEW
   const { isEnabled, enableAgenticMode, disableAgenticMode, startVoiceAssistant, stopVoiceAssistant } = useAgentic();
@@ -68,67 +66,64 @@ export const TopNav = () => {
       return;
     }
 
-    if (isEnabled) {
-      // Disabling - just turn it off directly
-      console.log('[TopNav] Disabling agent mode...');
-      setIsTogglingAgent(true);
-      try {
+    setIsTogglingAgent(true);
+
+    try {
+      if (isEnabled) {
+        // Disabling - just turn it off directly
+        console.log('[TopNav] Disabling agent mode...');
         await stopVoiceAssistant();
         disableAgenticMode();
         toast({ title: "AI Agent Disabled", description: "AI agent mode has been turned off." });
-      } catch {
-        toast({ title: "Error", description: "We couldn't disable the AI agent mode. Please try again.", variant: "destructive" });
-      } finally {
-        setIsTogglingAgent(false);
-      }
-    } else {
-      // Enabling - show permissions dialog first
-      console.log('[TopNav] Showing permissions dialog...');
-      setShowPermissionsDialog(true);
-      setIsTogglingAgent(true); // Prevent multiple clicks
-    }
-  }, [disableAgenticMode, isEnabled, isTogglingAgent, stopVoiceAssistant, toast]);
+      } else {
+        // Enabling - directly enable without dialog
+        console.log('[TopNav] Enabling agent mode directly...');
+        const success = await enableAgenticMode();
+        console.log('[TopNav] enableAgenticMode result:', success);
 
-  const handleAcceptPermissions = useCallback(async () => {
-    console.log('[TopNav] User accepted permissions, enabling agent mode...');
-    setIsTogglingAgent(true);
-    try {
-      const success = await enableAgenticMode();
-      console.log('[TopNav] enableAgenticMode result:', success);
-
-      if (success) {
-        if (isVoiceIntegrationConfigured()) {
-          try {
-            console.log('[TopNav] Starting voice assistant...');
-            await startVoiceAssistant();
-            toast({ title: "AI Agent Activated! 🎉", description: "Your AI assistant is now speaking. How can I help you?" });
-          } catch (error) {
-            console.error("Failed to start voice assistant after enabling agent mode", error);
-            toast({ title: "Agent Mode Enabled", description: "Agent mode is active, but we couldn't start voice assistance. Check your AI configuration." });
+        if (success) {
+          if (isVoiceIntegrationConfigured()) {
+            try {
+              console.log('[TopNav] Starting voice assistant...');
+              await startVoiceAssistant();
+              toast({
+                title: "AI Agent Activated! 🎉",
+                description: "Your AI assistant is ready. Camera and microphone are active."
+              });
+            } catch (error) {
+              console.error('[TopNav] Failed to start voice assistant:', error);
+              toast({
+                title: "Agent Mode Enabled",
+                description: "Agent mode is active, but voice assistance couldn't start."
+              });
+            }
+          } else {
+            console.log('[TopNav] Voice integration not configured');
+            toast({
+              title: "Agent Mode Enabled",
+              description: "Agent mode is active with camera for sentiment analysis."
+            });
           }
         } else {
-          console.log('[TopNav] Voice integration not configured');
-          toast({ title: "Agent Mode Enabled", description: "Voice integration is disabled in this test build, so audio won't start automatically." });
+          console.error('[TopNav] Failed to enable agent mode - permissions denied');
+          toast({
+            title: "Permissions Required",
+            description: "Please grant camera and microphone access to enable AI agent mode.",
+            variant: "destructive"
+          });
         }
-      } else {
-        console.error('[TopNav] Failed to enable agentic mode - permissions denied');
-        toast({ title: "Permissions Required", description: "Please grant camera or microphone access to enable AI agent mode.", variant: "destructive" });
       }
     } catch (error) {
-      console.error('[TopNav] Error enabling agent mode:', error);
-      toast({ title: "Error", description: "We couldn't enable the AI agent mode. Please try again.", variant: "destructive" });
+      console.error('[TopNav] Error toggling agent mode:', error);
+      toast({
+        title: "Error",
+        description: "We couldn't toggle the AI agent mode. Please try again.",
+        variant: "destructive"
+      });
     } finally {
-      console.log('[TopNav] Closing dialog and resetting toggle state');
       setIsTogglingAgent(false);
-      setShowPermissionsDialog(false);
     }
-  }, [enableAgenticMode, startVoiceAssistant, toast]);
-
-  const handleDeclinePermissions = useCallback(() => {
-    console.log('[TopNav] User declined permissions, closing dialog');
-    setShowPermissionsDialog(false);
-    setIsTogglingAgent(false);
-  }, []);
+  }, [disableAgenticMode, enableAgenticMode, isEnabled, isTogglingAgent, startVoiceAssistant, stopVoiceAssistant, toast]);
 
   return (
     <nav
@@ -345,14 +340,6 @@ export const TopNav = () => {
           </div>
         </div>
       </div>
-
-      {/* Agent Permissions Dialog */}
-      <AgentPermissionsDialog
-        isOpen={showPermissionsDialog}
-        onAccept={handleAcceptPermissions}
-        onDecline={handleDeclinePermissions}
-        isEnabling={isTogglingAgent}
-      />
     </nav>
   );
 };
