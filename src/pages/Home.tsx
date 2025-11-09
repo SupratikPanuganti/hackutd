@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TopNav } from "@/components/TopNav";
 import LiquidEther from "@/components/LiquidEther";
-import { AgentOnboardingDialog } from "@/components/AgentOnboardingDialog";
 import { useAgentic } from "@/contexts/AgenticContext";
 
 const Home = () => {
@@ -231,9 +230,6 @@ SELLING TIPS:
           </div>
         </section>
       </div>
-
-      {/* Agent Onboarding Dialog - Only shown on first visit */}
-      <AgentOnboardingDialog />
     </div>
   );
 };
