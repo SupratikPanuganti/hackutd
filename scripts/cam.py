@@ -152,7 +152,21 @@ def call_vila_single_label(image_b64):
         sys.stderr.write(f"[DEBUG] Calling VILA API...\n")
         sys.stderr.flush()
         r = requests.post(VILA_URL, headers=headers, json=payload, timeout=TIMEOUT_SEC)
-        r.raise_for_status()
+
+        # Log response details
+        sys.stderr.write(f"[DEBUG] VILA API Status Code: {r.status_code}\n")
+        sys.stderr.flush()
+
+        if r.status_code != 200:
+            sys.stderr.write(f"[ERROR] VILA API returned {r.status_code}: {r.text[:200]}\n")
+            sys.stderr.flush()
+            # Try OpenAI fallback on non-200 status
+            if OPENAI_API_KEY:
+                sys.stderr.write(f"[DEBUG] Falling back to OpenAI...\n")
+                sys.stderr.flush()
+                return call_openai_vision(image_b64)
+            return 0
+
         data = r.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         if isinstance(content, list):
@@ -171,8 +185,17 @@ def call_vila_single_label(image_b64):
         sys.stderr.write(f"[DEBUG] No valid value found, returning 0\n")
         sys.stderr.flush()
         return 0
+    except requests.exceptions.RequestException as e:
+        sys.stderr.write(f"[ERROR] VILA API request error: {e}\n")
+        sys.stderr.flush()
+        # Fallback to OpenAI if available
+        if OPENAI_API_KEY:
+            sys.stderr.write(f"[DEBUG] Falling back to OpenAI after request error...\n")
+            sys.stderr.flush()
+            return call_openai_vision(image_b64)
+        return 0
     except Exception as e:
-        sys.stderr.write(f"[ERROR] VILA API error: {e}, trying OpenAI fallback...\n")
+        sys.stderr.write(f"[ERROR] VILA API unexpected error: {e}\n")
         sys.stderr.flush()
         # Fallback to OpenAI if available
         if OPENAI_API_KEY:

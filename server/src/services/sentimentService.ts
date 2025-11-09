@@ -50,8 +50,8 @@ export class SentimentService extends EventEmitter {
         ...process.env,
         CAMERA_INDEX: forcedCameraIndex.toString(),  // HARDCODED TO 0
         HEADLESS: 'true',
-        DEBUG_WINDOW: 'true',  // Show debug window
-        NIM_API_KEY: process.env.NIM_API_KEY || '',
+        DEBUG_WINDOW: 'false',  // Set to 'true' to show debug window
+        NIM_API_KEY: process.env.NIM_API_KEY || process.env.NVIDIA_API_KEY || '',
         OPENAI_KEY: process.env.OPENAI_KEY || process.env.OPENAI_API_KEY || '',
         USE_OPENAI: process.env.USE_OPENAI || 'false',  // Set to 'true' to use OpenAI, 'false' for NVIDIA
       },
@@ -59,6 +59,7 @@ export class SentimentService extends EventEmitter {
       cwd: process.cwd(),
     });
 
+    console.log('[SENTIMENT] Python process spawned, waiting for initialization...');
     this.isRunning = true;
 
     // Handle stdout (sentiment values)
@@ -90,7 +91,7 @@ export class SentimentService extends EventEmitter {
           // Emit sentiment update
           this.emit('sentiment', sentimentData);
 
-          console.log(`[SENTIMENT] ${value} (${this.getSentimentLabel(value)}) - History length: ${this.sentimentHistory.length}`);
+          console.log(`[SENTIMENT] ✓ ${value} (${this.getSentimentLabel(value)}) - Timestamp: ${sentimentData.timestamp} - History: ${this.sentimentHistory.length}`);
         } else {
           console.log(`[SENTIMENT DEBUG] Value ${value} out of range`);
         }

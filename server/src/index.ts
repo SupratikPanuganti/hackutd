@@ -131,6 +131,8 @@ sentimentService.on('sentiment', (data: SentimentData) => {
     data,
   });
 
+  console.log(`[WEBSOCKET] Broadcasting sentiment to ${clients.size} clients:`, data);
+
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
@@ -144,6 +146,8 @@ sentimentService.on('started', () => {
     type: 'status',
     data: { running: true },
   });
+
+  console.log(`[WEBSOCKET] Broadcasting service STARTED status to ${clients.size} clients`);
 
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {

@@ -38,7 +38,14 @@ export const SentimentDisplay = () => {
   const getSentimentLabel = () => {
     if (!isSentimentServiceRunning) return "Starting...";
     if (!currentSentiment) return "Detecting...";
-    return currentSentiment.label || "Neutral";
+
+    // Use the label if available, otherwise derive from value
+    if (currentSentiment.label) return currentSentiment.label;
+
+    // Fallback: derive label from value
+    if (currentSentiment.value > 0) return "Happy";
+    if (currentSentiment.value < 0) return "Frustrated";
+    return "Neutral";
   };
 
   return (
