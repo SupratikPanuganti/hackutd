@@ -119,8 +119,10 @@ def call_vila_single_label(image_b64):
     """
     import sys
 
-    # If configured to use OpenAI, skip VILA
+    # If configured to use OpenAI, skip VILA entirely
     if USE_OPENAI:
+        sys.stderr.write(f"[DEBUG] USE_OPENAI=true, calling OpenAI directly...\n")
+        sys.stderr.flush()
         return call_openai_vision(image_b64)
 
     prompt = (
