@@ -39,7 +39,7 @@ export const useVoiceActions = () => {
     const vapi = getVapiClient();
     if (!vapi) return;
 
-    const handleMessage = (message: any) => {
+    const handleMessage = (message: unknown) => {
       try {
         console.log('[useVoiceActions] Received VAPI message:', message);
 

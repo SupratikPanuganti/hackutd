@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { TopNav } from "@/components/TopNav";
 import { Badge } from "@/components/ui/badge";
-import { incidents, towers } from "@/lib/mockData";
+import { incidents } from "@/lib/mockData";
+import { getTowers } from "@/lib/supabaseService";
+import { Tower } from "@/lib/supabase";
 import { MapboxMap } from "@/components/MapboxMap";
+import { LocationPermissionDialog } from "@/components/LocationPermissionDialog";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 interface TowerDetails {
   id: string;
@@ -14,14 +19,88 @@ interface TowerDetails {
 
 const NetworkStatus = () => {
   const [selectedTower, setSelectedTower] = useState<TowerDetails | null>(null);
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
+
+  // Geolocation hook
+  const {
+    location,
+    requestLocation,
+    watchPosition,
+    clearWatch,
+    isSupported,
+  } = useGeolocation();
+
+  // Fetch towers from database
+  const { data: towers = [] } = useQuery<Tower[]>({
+    queryKey: ['towers'],
+    queryFn: getTowers,
+  });
+
+  // Show location dialog on every page visit/refresh
+  useEffect(() => {
+    if (!isSupported) {
+      console.log('📍 Geolocation is not supported');
+      return;
+    }
+
+    // Always show dialog on mount (every page visit/refresh)
+    console.log('📍 Showing location dialog');
+    setShowLocationDialog(true);
+  }, [isSupported]);
+
+  // Watch position when location is available
+  useEffect(() => {
+    if (location.latitude && location.longitude && !location.error) {
+      // Start watching position for updates
+      const watchId = watchPosition((loc) => {
+        if (loc.latitude && loc.longitude) {
+          console.log('📍 Location updated:', loc.latitude, loc.longitude);
+        }
+      });
+      watchIdRef.current = watchId;
+
+      return () => {
+        if (watchIdRef.current !== null) {
+          clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
+        }
+      };
+    }
+  }, [location.latitude, location.longitude, watchPosition, clearWatch, location.error]);
+
+  // Handle location permission
+  const handleAllowLocation = async () => {
+    setShowLocationDialog(false);
+    console.log('📍 User allowed location, requesting...');
+    await requestLocation();
+  };
+
+  const handleDenyLocation = () => {
+    setShowLocationDialog(false);
+    console.log('📍 User denied location');
+  };
+
+  // Prepare user location for map
+  const userLocation = (location.latitude !== null && location.longitude !== null && !location.error)
+    ? { latitude: location.latitude, longitude: location.longitude }
+    : null;
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-black">
+      {/* Location Permission Dialog */}
+      <LocationPermissionDialog
+        open={showLocationDialog}
+        onClose={handleDenyLocation}
+        onAllow={handleAllowLocation}
+      />
+
       {/* Full-screen map background */}
       <div className="fixed inset-0 z-0">
         <MapboxMap 
           className="w-full h-full" 
           onTowerClick={setSelectedTower}
+          userLocation={userLocation}
         />
       </div>
 
@@ -120,13 +199,19 @@ const NetworkStatus = () => {
                     Towers in {selectedTower.region}
                   </p>
                   <div className="space-y-2">
-                    {towers
+                      {towers
                       .filter(t => t.region === selectedTower.region)
                       .map((tower) => (
                         <div 
                           key={tower.id}
                           className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
-                          onClick={() => setSelectedTower(tower)}
+                          onClick={() => setSelectedTower({
+                            id: tower.id,
+                            region: tower.region,
+                            health: tower.health,
+                            lat: tower.lat,
+                            lng: tower.lng,
+                          })}
                         >
                           <span className="font-mono text-sm text-white">{tower.id}</span>
                           <div className={`h-2 w-2 rounded-full ${

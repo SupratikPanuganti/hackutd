@@ -19,7 +19,11 @@
       "Bash(findstr:*)",
       "Bash(python:*)",
       "Bash(taskkill:*)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(npm run build:*)",
+      "Bash(del nul)",
+      "Bash(rm:*)",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "ask": []

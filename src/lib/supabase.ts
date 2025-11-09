@@ -9,16 +9,16 @@ const DEFAULT_SUPABASE_ANON_KEY =
 const runtimeEnv: EnvSource = (() => {
   const sources: EnvSource[] = [];
 
-  if (typeof import.meta !== 'undefined' && typeof (import.meta as any).env !== 'undefined') {
-    sources.push((import.meta as any).env);
+  if (typeof import.meta !== 'undefined' && typeof (import.meta as { env?: Record<string, unknown> }).env !== 'undefined') {
+    sources.push((import.meta as { env?: EnvSource }).env || {});
   }
 
   if (typeof process !== 'undefined' && typeof process.env !== 'undefined') {
     sources.push(process.env as EnvSource);
   }
 
-  if (typeof window !== 'undefined' && (window as any).__ENV__) {
-    sources.push((window as any).__ENV__);
+  if (typeof window !== 'undefined' && (window as typeof window & { __ENV__?: EnvSource }).__ENV__) {
+    sources.push((window as typeof window & { __ENV__?: EnvSource }).__ENV__ || {});
   }
 
   return Object.assign({}, ...sources);
@@ -84,7 +84,7 @@ export interface User {
   created_at: string;
   updated_at: string;
   last_sign_in_at?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserPreferences {
@@ -94,7 +94,7 @@ export interface UserPreferences {
   notifications_enabled: boolean;
   ai_agent_enabled: boolean;
   preferred_language: string;
-  preferences?: Record<string, any>;
+  preferences?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -111,7 +111,35 @@ export interface SupportTicket {
   created_at: string;
   updated_at: string;
   resolved_at?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface StatusSnapshot {
+  id: string;
+  session_id: string | null;
+  region: string;
+  tower_id: string | null;
+  health: string;
+  eta_minutes: number | null;
+  network_happiness_score: number | null;
+  sparkline: number[] | null;
+  source_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+}
+
+export interface Tower {
+  id: string;
+  region: string;
+  health: 'ok' | 'degraded';
+  lat: number;
+  lng: number;
+  tower_id?: string;
+  network_happiness_score?: number;
+  eta_minutes?: number | null;
+  sparkline?: number[];
+  _fromDatabase?: boolean;
 }
 
 export const userOperations = {
