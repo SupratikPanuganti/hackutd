@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Bot, Minimize2 } from "lucide-react";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { ConversationPanel } from "@/components/assist/ConversationPanel";
 import { cn } from "@/lib/utils";
@@ -58,11 +57,11 @@ export const FloatingAssistant = () => {
             onClick={toggleAssistant}
             size="lg"
             className={cn(
-              "rounded-full h-14 w-14 shadow-lg hover:shadow-xl transition-all",
+              "rounded-full h-14 w-14 shadow-lg hover:shadow-xl transition-all text-xl",
               shouldPulse && "animate-pulse"
             )}
           >
-            <Bot className="h-6 w-6" />
+            🤖
           </Button>
         </div>
       )}
@@ -70,12 +69,12 @@ export const FloatingAssistant = () => {
       {/* Expanded Assistant Panel */}
       {isAssistantOpen && (
         <div className="fixed bottom-6 right-6 z-50 w-[400px] h-[600px] max-h-[80vh]">
-          <Card className="h-full flex flex-col shadow-2xl">
+          <Card className="h-full flex flex-col shadow-2xl rounded-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center justify-between p-4 border-b rounded-t-2xl">
               <div className="flex items-center gap-2">
-                <div className="bg-primary/10 p-2 rounded-full">
-                  <Bot className="h-5 w-5 text-primary" />
+                <div className="bg-primary/10 p-2 rounded-full text-lg">
+                  🤖
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Transcript</h3>
@@ -85,11 +84,11 @@ export const FloatingAssistant = () => {
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="sm"
                   onClick={closeAssistant}
-                  className="h-8 w-8"
+                  className="h-8 w-8 rounded-xl"
                 >
-                  <Minimize2 className="h-4 w-4" />
+                  <span className="text-lg">−</span>
                 </Button>
               </div>
             </div>
