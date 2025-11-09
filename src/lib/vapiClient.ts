@@ -220,7 +220,16 @@ export const getVapiClient = () => {
   return client;
 };
 
-export const isVoiceIntegrationConfigured = () => Boolean(VAPI_PUBLIC_KEY && VAPI_ASSISTANT_ID);
+export const isVoiceIntegrationConfigured = () => {
+  // Only return true if we have REAL credentials from environment variables
+  // NOT the default test values
+  return Boolean(
+    ENV_VAPI_PUBLIC_KEY &&
+    ENV_VAPI_ASSISTANT_ID &&
+    ENV_VAPI_PUBLIC_KEY !== DEFAULT_VAPI_PUBLIC_KEY &&
+    ENV_VAPI_ASSISTANT_ID !== DEFAULT_VAPI_ASSISTANT_ID
+  );
+};
 
 export const startVoiceCall = async (
   introPrompt?: string,
