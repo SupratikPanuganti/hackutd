@@ -216,11 +216,12 @@ const NetworkStatus = () => {
                 if (result.success) {
                   console.log('✅ Telegram notification sent successfully: Tower degraded', result);
                 } else {
-                  console.error('❌ Failed to send Telegram notification:', result.error);
-                  console.error('Full error details:', result);
+                  // Silently fail - telegram notifications are optional
+                  console.log('ℹ️ Telegram notification not sent (service may be unavailable)');
                 }
               }).catch(error => {
-                console.error('❌ Exception while sending Telegram notification:', error);
+                // Silently fail - telegram notifications are optional
+                console.log('ℹ️ Telegram notification failed (service may be unavailable)');
               });
             } else {
               console.log('⚠️ Notification NOT sent. Reasons:', {
@@ -275,11 +276,12 @@ const NetworkStatus = () => {
                   if (result.success) {
                     console.log('✅ Telegram notification sent successfully: Tower restored', result);
                   } else {
-                    console.error('❌ Failed to send Telegram notification:', result.error);
-                    console.error('Full error details:', result);
+                    // Silently fail - telegram notifications are optional
+                    console.log('ℹ️ Telegram notification not sent (service may be unavailable)');
                   }
                 }).catch(error => {
-                  console.error('❌ Exception while sending Telegram notification:', error);
+                  // Silently fail - telegram notifications are optional
+                  console.log('ℹ️ Telegram notification failed (service may be unavailable)');
                 });
               } else {
                 console.log('⚠️ Restoration notification NOT sent. Reasons:', {

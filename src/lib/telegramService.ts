@@ -97,6 +97,15 @@ export async function sendTowerStatusNotification(
     }
 
     if (!response.ok) {
+      // If it's a 503 (service unavailable), silently fail - telegram is optional
+      if (response.status === 503) {
+        console.log('ℹ️ Telegram service not configured (this is optional)');
+        return {
+          success: false,
+          error: data.error || 'Telegram service not configured',
+        };
+      }
+
       console.error('❌ API returned error status:', response.status, data);
       return {
         success: false,
