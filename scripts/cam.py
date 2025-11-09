@@ -22,7 +22,7 @@ USE_OPENAI      = os.environ.get("USE_OPENAI", "false").lower() == "true"
 HEADLESS        = os.environ.get("HEADLESS", "false").lower() == "true"
 DEBUG_WINDOW    = os.environ.get("DEBUG_WINDOW", "false").lower() == "true"  # Show window even if headless
 
-WINDOW_SECONDS  = 5.0       # average over this window
+WINDOW_SECONDS  = 2.0       # average over this window (changed from 5.0 to 2.0)
 SAMPLE_PERIOD   = 0.9       # classify at most once per ~0.9s
 DETECT_PERIOD   = 0.20      # run face detection ~5x/sec (not every frame)
 JPEG_QUALITY    = 85
