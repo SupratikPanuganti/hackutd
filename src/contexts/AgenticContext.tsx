@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { useLocation } from 'react-router-dom';
 import { isVoiceIntegrationConfigured, logVapiDebug, logVapiWarn, startVoiceCall, stopVoiceCall } from '@/lib/vapiClient';
 import { ContextUpdater, ContextUpdate } from '@/services/contextUpdater';
+import { sentimentMonitor } from '@/services/sentimentMonitor';
 
 interface AgenticPermissions {
   camera: boolean;
@@ -234,6 +235,12 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
               if (sentimentHistory.length >= 10) {
                 calculateTrend();
               }
+
+              // ENHANCED: Feed sentiment to monitor for proactive actions
+              const currentTrend = sentimentHistory.length >= 10 ? sentimentTrend : 'stable';
+              sentimentMonitor.processSentiment(sentimentData, currentTrend).catch(error => {
+                console.error('[Sentiment] Monitor error:', error);
+              });
             } else if (message.type === 'status') {
               console.log('[Sentiment] Status update:', message.data);
               setIsSentimentServiceRunning(message.data.running);
@@ -439,6 +446,11 @@ SENTIMENT-DRIVEN PERSONALIZATION (CRITICAL):
   * Frustrated (sentiment: -1): User needs help NOW - be empathetic, offer quick solutions, simplify everything, apologize if needed
 - If sentiment is DECLINING: Change your approach immediately - be more direct, offer alternatives, show you understand
 - If sentiment is IMPROVING: Keep doing what you're doing - your approach is working
+- 🚨 PROACTIVE FRUSTRATION RESPONSE:
+  * If user is frustrated (< -0.3) for 3+ interactions, IMMEDIATELY offer alternatives
+  * Say: "I notice you seem frustrated. Would you like to see [alternative option]?"
+  * Don't wait for them to ask - be proactive and suggest switching to something different
+  * Examples: "Let me show you an easier option" or "How about we try this instead?"
 
 🚨 INFORMATION GROUNDING - ABSOLUTE RULES (NEVER BREAK THESE):
 - WAIT for "PAGE LOADED" signal before responding to navigation requests
@@ -458,6 +470,29 @@ PROACTIVE SELLING & RECOMMENDATIONS:
 - Create urgency when appropriate: "This plan is popular", "Great value for what you get"
 - Bundle opportunities: Mention device + plan combos, accessories, insurance
 
+🎯 INTERACTIVE CAPABILITIES (NEW!):
+You can now INTERACT with page elements! Use these when the user asks about specific items:
+
+ON DEVICES PAGE:
+- When user asks "tell me about the iPhone 15" → Trigger: agent-expand-device
+- When user asks "show me more about Samsung Galaxy" → Trigger: agent-expand-device
+- When user asks "filter by Android" or "show me iOS devices" → Trigger: agent-filter-devices
+- Say: "Let me pull up the details for you" then the system auto-expands the device card
+- After expanding, describe what you see: price, features, why it's great for them
+
+ON NETWORK STATUS PAGE:
+- When user asks "what towers are out?" → Trigger: agent-focus-tower (status: 'degraded')
+- When user asks "show me Dallas towers" → Trigger: agent-focus-tower (region: 'Dallas')
+- Say: "Let me show you that tower" then describe the status
+- Focus on reassurance: "We're working on it" or "Everything looks good"
+
+SENTIMENT-TRIGGERED AUTO-SUGGESTIONS:
+- The system watches for frustration automatically
+- When frustration detected (3+ negative readings), you'll receive an event
+- Respond immediately with: "I see you're having trouble. Let me suggest [alternative]"
+- Example: User frustrated with expensive phone → "How about this great mid-range option?"
+- Example: User frustrated with network → "Let me show you our coverage map"
+
 RESPONSE STYLE:
 - Brief but warm - 2-3 sentences max unless user wants details
 - Use natural language: "you'd love", "perfect for", "great choice"
@@ -465,6 +500,7 @@ RESPONSE STYLE:
 - Navigate proactively: If they ask about phones, say "Let me take you to our devices page"
 - Focus on benefits, not features: "all-day battery" not "5000mAh"
 - Use hands-free guidance: "I can show you our 5G plans" triggers navigation
+- 🆕 LEVERAGE INTERACTIONS: When user mentions a specific device/tower, trigger the expand/focus action!
 `;
 
       // Start voice call with brief greeting, then wait for user

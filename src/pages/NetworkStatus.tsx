@@ -491,6 +491,45 @@ const NetworkStatus = () => {
     updateScreenContext({ visibleContent: content });
   }, [towers, selectedTower, userLocation, updateScreenContext]);
 
+  // ENHANCED: Listen for agent focus tower events
+  useEffect(() => {
+    const handleFocusTower = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { towerId, towerRegion, status } = customEvent.detail;
+      console.log('[NetworkStatus] Agent requested focus tower:', { towerId, towerRegion, status });
+
+      // Find tower by ID, region, or status
+      const tower = towers.find(t =>
+        t.id === towerId ||
+        t.region.toLowerCase().includes(towerRegion?.toLowerCase()) ||
+        (status && t.health.toLowerCase() === status.toLowerCase())
+      );
+
+      if (tower) {
+        setSelectedTower({
+          id: tower.id,
+          region: tower.region,
+          health: tower.health,
+          lat: tower.lat,
+          lng: tower.lng
+        });
+
+        console.log('[NetworkStatus] Focused on tower:', tower.region);
+
+        // Scroll to map
+        setTimeout(() => {
+          document.querySelector('.mapboxgl-canvas')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    };
+
+    window.addEventListener('agent-focus-tower', handleFocusTower);
+
+    return () => {
+      window.removeEventListener('agent-focus-tower', handleFocusTower);
+    };
+  }, [towers]);
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-black">
       {/* Location Permission Dialog */}

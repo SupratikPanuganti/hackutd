@@ -4,12 +4,19 @@ export interface ActionContext {
   navigate: NavigateFunction;
   currentRoute: string;
   userId?: string;
+  // Enhanced: Allow custom action handlers from pages
+  customHandlers?: Record<string, (params?: Record<string, unknown>) => Promise<void>>;
 }
 
 export interface Action {
   type: string;
   params?: Record<string, unknown>;
   description?: string;
+  // Enhanced: Element targeting
+  elementId?: string;
+  elementSelector?: string;
+  // Enhanced: Sentiment-triggered
+  triggeredBySentiment?: boolean;
 }
 
 export interface ActionResult {
@@ -83,12 +90,59 @@ export class ActionExecutor {
           result = await this.performSearch(action.params);
           break;
 
+        // ===== ENHANCED ACTIONS =====
+
+        case 'click_element':
+          result = await this.clickElement(action);
+          break;
+
+        case 'expand_device':
+          result = await this.expandDevice(action.params);
+          break;
+
+        case 'focus_tower':
+          result = await this.focusTower(action.params);
+          break;
+
+        case 'show_device_details':
+          result = await this.showDeviceDetails(action.params);
+          break;
+
+        case 'filter_devices':
+          result = await this.filterDevices(action.params);
+          break;
+
+        case 'suggest_alternative':
+          result = await this.suggestAlternative(action.params);
+          break;
+
+        case 'proactive_help':
+          result = await this.proactiveHelp(action.params);
+          break;
+
         default:
-          result = {
-            success: false,
-            message: `Unknown action type: ${action.type}`,
-            error: 'UNKNOWN_ACTION',
-          };
+          // Check for custom handlers from page context
+          if (this.context.customHandlers && this.context.customHandlers[action.type]) {
+            try {
+              await this.context.customHandlers[action.type](action.params);
+              result = {
+                success: true,
+                message: `Custom action '${action.type}' executed`,
+              };
+            } catch (error) {
+              result = {
+                success: false,
+                message: `Custom action '${action.type}' failed: ${error}`,
+                error: 'CUSTOM_ACTION_ERROR',
+              };
+            }
+          } else {
+            result = {
+              success: false,
+              message: `Unknown action type: ${action.type}`,
+              error: 'UNKNOWN_ACTION',
+            };
+          }
       }
 
       // Store in history
@@ -303,6 +357,206 @@ export class ActionExecutor {
       success: true,
       message: `Searching for: ${query}`,
       data: { query },
+    };
+  }
+
+  // ===== ENHANCED ACTION HANDLERS =====
+
+  /**
+   * Click a specific element on the page
+   */
+  private async clickElement(action: Action): Promise<ActionResult> {
+    const { elementId, elementSelector } = action;
+
+    if (!elementId && !elementSelector) {
+      return {
+        success: false,
+        message: 'No element identifier provided',
+        error: 'MISSING_PARAM',
+      };
+    }
+
+    try {
+      const element = elementId
+        ? document.getElementById(elementId)
+        : elementSelector
+        ? document.querySelector(elementSelector)
+        : null;
+
+      if (!element) {
+        return {
+          success: false,
+          message: `Element not found: ${elementId || elementSelector}`,
+          error: 'ELEMENT_NOT_FOUND',
+        };
+      }
+
+      // Scroll element into view smoothly
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Wait for scroll
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Click the element
+      if (element instanceof HTMLElement) {
+        element.click();
+      }
+
+      return {
+        success: true,
+        message: `Clicked element: ${elementId || elementSelector}`,
+        data: { elementId, elementSelector },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to click element: ${error}`,
+        error: 'CLICK_FAILED',
+      };
+    }
+  }
+
+  /**
+   * Expand a specific device card to show details
+   */
+  private async expandDevice(params?: Record<string, unknown>): Promise<ActionResult> {
+    const deviceName = params?.deviceName as string;
+    const deviceId = params?.deviceId as string;
+
+    if (!deviceName && !deviceId) {
+      return {
+        success: false,
+        message: 'No device specified',
+        error: 'MISSING_PARAM',
+      };
+    }
+
+    // Navigate to devices page if not already there
+    if (this.context.currentRoute !== '/devices') {
+      this.context.navigate('/devices');
+      await new Promise(resolve => setTimeout(resolve, 800)); // Wait for navigation
+    }
+
+    // Dispatch custom event that the Devices page can listen for
+    window.dispatchEvent(new CustomEvent('agent-expand-device', {
+      detail: { deviceName, deviceId }
+    }));
+
+    return {
+      success: true,
+      message: `Expanding details for: ${deviceName || deviceId}`,
+      data: { deviceName, deviceId },
+    };
+  }
+
+  /**
+   * Focus on a specific tower in the network status map
+   */
+  private async focusTower(params?: Record<string, unknown>): Promise<ActionResult> {
+    const towerId = params?.towerId as string;
+    const towerRegion = params?.region as string;
+    const status = params?.status as string;
+
+    if (!towerId && !towerRegion && !status) {
+      return {
+        success: false,
+        message: 'No tower identifier provided',
+        error: 'MISSING_PARAM',
+      };
+    }
+
+    // Navigate to network status if not already there
+    if (this.context.currentRoute !== '/status') {
+      this.context.navigate('/status');
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    // Dispatch custom event for the NetworkStatus page
+    window.dispatchEvent(new CustomEvent('agent-focus-tower', {
+      detail: { towerId, towerRegion, status }
+    }));
+
+    return {
+      success: true,
+      message: `Focusing on tower: ${towerId || towerRegion || `with status: ${status}`}`,
+      data: { towerId, towerRegion, status },
+    };
+  }
+
+  /**
+   * Show details for a specific device
+   */
+  private async showDeviceDetails(params?: Record<string, unknown>): Promise<ActionResult> {
+    return await this.expandDevice(params);
+  }
+
+  /**
+   * Filter devices by criteria
+   */
+  private async filterDevices(params?: Record<string, unknown>): Promise<ActionResult> {
+    const filterType = params?.filterType as string;
+
+    if (!filterType) {
+      return {
+        success: false,
+        message: 'No filter type specified',
+        error: 'MISSING_PARAM',
+      };
+    }
+
+    // Navigate to devices if not there
+    if (this.context.currentRoute !== '/devices') {
+      this.context.navigate('/devices');
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    // Dispatch filter event
+    window.dispatchEvent(new CustomEvent('agent-filter-devices', {
+      detail: { filterType }
+    }));
+
+    return {
+      success: true,
+      message: `Filtering devices by: ${filterType}`,
+      data: { filterType },
+    };
+  }
+
+  /**
+   * Suggest an alternative based on user frustration
+   */
+  private async suggestAlternative(params?: Record<string, unknown>): Promise<ActionResult> {
+    const currentItem = params?.currentItem as string;
+    const reason = params?.reason as string || 'frustration detected';
+
+    // Dispatch event that voice agent can respond to
+    window.dispatchEvent(new CustomEvent('agent-suggest-alternative', {
+      detail: { currentItem, reason }
+    }));
+
+    return {
+      success: true,
+      message: `Suggesting alternative for: ${currentItem} (reason: ${reason})`,
+      data: { currentItem, reason, triggeredBySentiment: true },
+    };
+  }
+
+  /**
+   * Proactively offer help based on frustration
+   */
+  private async proactiveHelp(params?: Record<string, unknown>): Promise<ActionResult> {
+    const context = params?.context as string;
+    const sentimentValue = params?.sentimentValue as number;
+
+    // Dispatch event for voice agent to respond
+    window.dispatchEvent(new CustomEvent('agent-proactive-help', {
+      detail: { context, sentimentValue }
+    }));
+
+    return {
+      success: true,
+      message: `Offering proactive help (context: ${context})`,
+      data: { context, sentimentValue, triggeredBySentiment: true },
     };
   }
 }

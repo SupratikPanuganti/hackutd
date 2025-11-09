@@ -141,6 +141,46 @@ const Devices = () => {
     }
   }, [devices, activeFilter, updateScreenContext]);
 
+  // ENHANCED: Listen for agent actions
+  useEffect(() => {
+    const handleExpandDevice = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { deviceName, deviceId } = customEvent.detail;
+      console.log('[Devices] Agent requested expand:', { deviceName, deviceId });
+
+      const device = devices.find(d =>
+        d.name.toLowerCase().includes(deviceName?.toLowerCase()) ||
+        d.id === deviceId
+      );
+
+      if (device) {
+        setExpandedId(device.id);
+        setTimeout(() => {
+          document.getElementById(`device-${device.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    };
+
+    const handleFilterDevices = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { filterType } = customEvent.detail;
+      const filterMap: Record<string, FilterType> = {
+        'ios': 'iOS', 'iphone': 'iOS', 'apple': 'iOS',
+        'android': 'Android', 'samsung': 'Android',
+        '5g': '5G', 'esim': 'eSIM', 'all': 'all'
+      };
+      setActiveFilter(filterMap[filterType.toLowerCase()] || 'all');
+    };
+
+    window.addEventListener('agent-expand-device', handleExpandDevice);
+    window.addEventListener('agent-filter-devices', handleFilterDevices);
+
+    return () => {
+      window.removeEventListener('agent-expand-device', handleExpandDevice);
+      window.removeEventListener('agent-filter-devices', handleFilterDevices);
+    };
+  }, [devices]);
+
   const FilterBtn = ({ label, value }: { label: string; value: FilterType }) => {
     const isActive = activeFilter === value;
     const showActiveGradient = isActive && (!hoveringFilter || hoveringFilter === value);
