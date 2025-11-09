@@ -29,6 +29,7 @@ export const TopNav = () => {
     { to: "/devices", label: "Devices" },
     { to: "/status", label: "Network" },
     { to: "/help", label: "Help" },
+    { to: "/admin", label: "Admin" },
   ];
 
   const handleAgentToggle = useCallback(async () => {

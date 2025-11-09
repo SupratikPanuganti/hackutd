@@ -3,10 +3,17 @@ import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
 import http from 'http';
 import dotenv from 'dotenv';
+import axios from 'axios';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { SentimentService, SentimentData } from './services/sentimentService.js';
 import { DecisionEngine, MultimodalContext } from './services/decisionEngine.js';
 
-const envConfig = dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Try to load .env from parent directory first, then current directory
+const envConfig = dotenv.config({ path: path.resolve(__dirname, '../../.env') }) || dotenv.config();
 
 if (envConfig.error) {
   console.warn('[ENV DEBUG] Failed to load .env file:', envConfig.error.message);
@@ -321,6 +328,88 @@ app.post('/api/decision/analyze', async (req, res) => {
   }
 });
 
+// Admin API Proxy - Parallel AI Extract
+app.post('/api/admin/parallel-extract', async (req, res) => {
+  try {
+    console.log('[Admin API] Parallel AI extraction request received');
+    console.log('[Admin API] Request body:', JSON.stringify(req.body, null, 2));
+
+    const parallelResponse = await axios.post(
+      'https://api.parallel.ai/v1beta/extract',
+      req.body,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 't5yTGrOLvVTh22GCh8PPmwY0PUSOrt8wjPnzq3V9',
+          'parallel-beta': 'search-extract-2025-10-10'
+        }
+      }
+    );
+
+    console.log('[Admin API] Parallel AI response received:', parallelResponse.status);
+    res.json(parallelResponse.data);
+  } catch (error) {
+    console.error('[Admin API] Parallel AI error:', error);
+    if (axios.isAxiosError(error)) {
+      res.status(error.response?.status || 500).json({
+        error: 'Parallel AI request failed',
+        message: error.message,
+        details: error.response?.data
+      });
+    } else {
+      res.status(500).json({
+        error: 'Parallel AI request failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+});
+
+// Admin API Proxy - Gemini AI
+app.post('/api/admin/gemini-analyze', async (req, res) => {
+  try {
+    console.log('[Admin API] Gemini AI analysis request received');
+
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+
+    if (!geminiApiKey) {
+      return res.status(500).json({
+        error: 'Gemini API key not configured',
+        message: 'GEMINI_API_KEY not found in environment variables'
+      });
+    }
+
+    console.log('[Admin API] Using Gemini API key:', geminiApiKey.substring(0, 10) + '...');
+
+    const geminiResponse = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      req.body,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('[Admin API] Gemini AI response received:', geminiResponse.status);
+    res.json(geminiResponse.data);
+  } catch (error) {
+    console.error('[Admin API] Gemini AI error:', error);
+    if (axios.isAxiosError(error)) {
+      res.status(error.response?.status || 500).json({
+        error: 'Gemini AI request failed',
+        message: error.message,
+        details: error.response?.data
+      });
+    } else {
+      res.status(500).json({
+        error: 'Gemini AI request failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+});
+
 // Start server
 server.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
@@ -333,6 +422,9 @@ server.listen(PORT, () => {
   console.log(`  POST /api/sentiment/start`);
   console.log(`  POST /api/sentiment/stop`);
   console.log(`  POST /api/actions/execute`);
+  console.log(`  POST /api/decision/analyze`);
+  console.log(`  POST /api/admin/parallel-extract`);
+  console.log(`  POST /api/admin/gemini-analyze`);
   console.log('\nReady to accept connections!');
 });
 
