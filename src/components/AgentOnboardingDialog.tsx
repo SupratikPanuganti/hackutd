@@ -21,9 +21,15 @@ export const AgentPermissionsDialog = ({
   onDecline,
   isEnabling,
 }: AgentPermissionsDialogProps) => {
+  console.log('[AgentPermissionsDialog] Rendered. isOpen:', isOpen, 'isEnabling:', isEnabling);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onDecline}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      console.log('[AgentPermissionsDialog] Dialog open state changed to:', open);
+      if (!open) {
+        onDecline();
+      }
+    }}>
       <DialogContent className="sm:max-w-[450px] backdrop-blur-xl bg-white/10 border-white/20 text-white shadow-2xl rounded-2xl relative overflow-hidden group">
         {/* Liquid glass effect overlays */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#5A0040]/30 via-[#E20074]/20 to-[#5A0040]/30 pointer-events-none" />
@@ -61,14 +67,20 @@ export const AgentPermissionsDialog = ({
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={onDecline}
+              onClick={() => {
+                console.log('[AgentPermissionsDialog] Cancel button clicked');
+                onDecline();
+              }}
               disabled={isEnabling}
               className="bg-white/10 hover:bg-white/20 text-white border-white/30 hover:border-white/40 rounded-xl transition-all duration-300 backdrop-blur-sm"
             >
               Cancel
             </Button>
             <Button
-              onClick={onAccept}
+              onClick={() => {
+                console.log('[AgentPermissionsDialog] Enable button clicked');
+                onAccept();
+              }}
               disabled={isEnabling}
               className="bg-gradient-to-r from-[#5A0040] to-[#E20074] text-white border-0 shadow-lg hover:shadow-xl hover:brightness-110 rounded-xl transition-all duration-300"
             >

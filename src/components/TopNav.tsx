@@ -61,10 +61,16 @@ export const TopNav = () => {
     location.pathname === to || (to !== "/" && location.pathname.startsWith(to));
 
   const handleAgentToggle = useCallback(async () => {
-    if (isTogglingAgent) return;
+    console.log('[TopNav] Toggle clicked. isEnabled:', isEnabled, 'isTogglingAgent:', isTogglingAgent);
+
+    if (isTogglingAgent) {
+      console.log('[TopNav] Already toggling, ignoring click');
+      return;
+    }
 
     if (isEnabled) {
       // Disabling - just turn it off directly
+      console.log('[TopNav] Disabling agent mode...');
       setIsTogglingAgent(true);
       try {
         await stopVoiceAssistant();
@@ -77,17 +83,23 @@ export const TopNav = () => {
       }
     } else {
       // Enabling - show permissions dialog first
+      console.log('[TopNav] Showing permissions dialog...');
       setShowPermissionsDialog(true);
+      setIsTogglingAgent(true); // Prevent multiple clicks
     }
   }, [disableAgenticMode, isEnabled, isTogglingAgent, stopVoiceAssistant, toast]);
 
   const handleAcceptPermissions = useCallback(async () => {
+    console.log('[TopNav] User accepted permissions, enabling agent mode...');
     setIsTogglingAgent(true);
     try {
       const success = await enableAgenticMode();
+      console.log('[TopNav] enableAgenticMode result:', success);
+
       if (success) {
         if (isVoiceIntegrationConfigured()) {
           try {
+            console.log('[TopNav] Starting voice assistant...');
             await startVoiceAssistant();
             toast({ title: "AI Agent Activated! 🎉", description: "Your AI assistant is now speaking. How can I help you?" });
           } catch (error) {
@@ -95,20 +107,25 @@ export const TopNav = () => {
             toast({ title: "Agent Mode Enabled", description: "Agent mode is active, but we couldn't start voice assistance. Check your AI configuration." });
           }
         } else {
+          console.log('[TopNav] Voice integration not configured');
           toast({ title: "Agent Mode Enabled", description: "Voice integration is disabled in this test build, so audio won't start automatically." });
         }
       } else {
+        console.error('[TopNav] Failed to enable agentic mode - permissions denied');
         toast({ title: "Permissions Required", description: "Please grant camera or microphone access to enable AI agent mode.", variant: "destructive" });
       }
-    } catch {
+    } catch (error) {
+      console.error('[TopNav] Error enabling agent mode:', error);
       toast({ title: "Error", description: "We couldn't enable the AI agent mode. Please try again.", variant: "destructive" });
     } finally {
+      console.log('[TopNav] Closing dialog and resetting toggle state');
       setIsTogglingAgent(false);
       setShowPermissionsDialog(false);
     }
   }, [enableAgenticMode, startVoiceAssistant, toast]);
 
   const handleDeclinePermissions = useCallback(() => {
+    console.log('[TopNav] User declined permissions, closing dialog');
     setShowPermissionsDialog(false);
     setIsTogglingAgent(false);
   }, []);
