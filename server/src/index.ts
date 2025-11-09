@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { SentimentService, SentimentData } from './services/sentimentService.js';
 import { DecisionEngine, MultimodalContext } from './services/decisionEngine.js';
+import { telegramService, TelegramNotification } from './services/telegramService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -365,6 +366,107 @@ app.post('/api/admin/parallel-extract', async (req, res) => {
   }
 });
 
+// Telegram Notification endpoint - Send tower status notification
+app.post('/api/notifications/telegram/tower-status', async (req, res) => {
+  try {
+    const { chatId, towerId, towerRegion, status, userLocation } = req.body;
+
+    if (!chatId) {
+      return res.status(400).json({
+        error: 'Chat ID is required',
+      });
+    }
+
+    if (!towerId || !towerRegion || !status || !userLocation) {
+      return res.status(400).json({
+        error: 'Missing required fields: towerId, towerRegion, status, userLocation',
+      });
+    }
+
+    if (status !== 'degraded' && status !== 'ok') {
+      return res.status(400).json({
+        error: 'Status must be "degraded" or "ok"',
+      });
+    }
+
+    const notification: TelegramNotification = {
+      towerId,
+      towerRegion,
+      status,
+      userLocation,
+    };
+
+    let result;
+    if (status === 'degraded') {
+      result = await telegramService.sendTowerDegradedNotification(chatId, notification);
+    } else {
+      result = await telegramService.sendTowerRestoredNotification(chatId, notification);
+    }
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Telegram notification sent successfully',
+        messageId: result.messageId,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to send Telegram notification',
+      });
+    }
+  } catch (error) {
+    console.error('[Telegram API] Error:', error);
+    res.status(500).json({
+      error: 'Failed to send Telegram notification',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Check Telegram service configuration and get bot info
+app.get('/api/notifications/telegram/status', async (req, res) => {
+  const botInfo = await telegramService.getBotInfo();
+  res.json({
+    configured: telegramService.isServiceConfigured(),
+    botInfo: botInfo || null,
+  });
+});
+
+// Test Telegram notification endpoint (for debugging)
+app.post('/api/notifications/telegram/test', async (req, res) => {
+  try {
+    const { chatId } = req.body;
+    const testChatId = chatId || '5367833555'; // Default to user's chat ID
+    
+    console.log('[Telegram Test] Sending test message to:', testChatId);
+    
+    const result = await telegramService.sendMessage(
+      testChatId,
+      '🧪 <b>Test Message</b>\n\nThis is a test message from the Tower Status system. If you received this, Telegram notifications are working!'
+    );
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Test message sent successfully',
+        messageId: result.messageId,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to send test message',
+      });
+    }
+  } catch (error) {
+    console.error('[Telegram Test] Error:', error);
+    res.status(500).json({
+      error: 'Failed to send test message',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Admin API Proxy - Gemini AI
 app.post('/api/admin/gemini-analyze', async (req, res) => {
   try {
@@ -423,6 +525,9 @@ server.listen(PORT, () => {
   console.log(`  POST /api/sentiment/stop`);
   console.log(`  POST /api/actions/execute`);
   console.log(`  POST /api/decision/analyze`);
+  console.log(`  POST /api/notifications/telegram/tower-status`);
+  console.log(`  GET  /api/notifications/telegram/status`);
+  console.log(`  POST /api/notifications/telegram/test`);
   console.log(`  POST /api/admin/parallel-extract`);
   console.log(`  POST /api/admin/gemini-analyze`);
   console.log('\nReady to accept connections!');

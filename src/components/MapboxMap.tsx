@@ -16,20 +16,25 @@ interface MapboxMapProps {
     latitude: number;
     longitude: number;
   } | null;
+  towers?: Tower[]; // Optional: allows parent to override towers (for demo purposes)
 }
 
-export const MapboxMap = ({ className, onTowerClick, userLocation }: MapboxMapProps) => {
+export const MapboxMap = ({ className, onTowerClick, userLocation, towers: towersProp }: MapboxMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersMapRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const userLocationMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const mapLoadedRef = useRef(false);
 
-  // Fetch towers from database
-  const { data: towers = [] } = useQuery<Tower[]>({
+  // Fetch towers from database (unless overridden by prop)
+  const { data: towersFromDb = [] } = useQuery<Tower[]>({
     queryKey: ['towers'],
     queryFn: getTowers,
+    enabled: !towersProp, // Only fetch if not provided via prop
   });
+
+  // Use prop towers if provided, otherwise use database towers
+  const towers = towersProp || towersFromDb;
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -118,6 +123,9 @@ export const MapboxMap = ({ className, onTowerClick, userLocation }: MapboxMapPr
             console.log(`📍 Updating position for tower ${tower.id}`);
             existingMarker.setLngLat([tower.lng, tower.lat]);
           }
+          
+          // Update marker appearance and popup if health changed (always update to ensure popup shows correct status)
+          updateTowerMarkerHealth(existingMarker, tower.health, tower);
         } else {
           // Create new marker
           try {
@@ -332,6 +340,77 @@ const addUserLocationMarker = (
   return marker;
 };
 
+// Helper function to update tower marker health appearance
+const updateTowerMarkerHealth = (marker: mapboxgl.Marker, health: 'ok' | 'degraded', tower?: Tower) => {
+  const element = marker.getElement();
+  if (!element) return;
+
+  // The marker element structure: el > wrapper > [pulse, inner]
+  const wrapper = element.firstChild as HTMLElement;
+  if (!wrapper) return;
+
+  // Find pulse (first child) and inner (second child) elements
+  const pulse = wrapper.children[0] as HTMLElement;
+  const inner = wrapper.children[1] as HTMLElement;
+
+  // Update pulse border color
+  if (pulse) {
+    pulse.style.border = health === "ok" 
+      ? "2px solid rgba(34, 197, 94, 0.6)" 
+      : "2px solid rgba(239, 68, 68, 0.6)"; // Red for degraded
+  }
+
+  // Update inner circle appearance (this is what makes it green/red)
+  if (inner) {
+    inner.style.border = health === "ok" 
+      ? "3px solid rgba(34, 197, 94, 0.8)" 
+      : "3px solid rgba(239, 68, 68, 0.8)"; // Red for degraded
+    inner.style.backgroundColor = health === "ok" 
+      ? "rgba(34, 197, 94, 0.2)" 
+      : "rgba(239, 68, 68, 0.2)"; // Red for degraded
+    inner.style.boxShadow = health === "ok"
+      ? "0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2)"
+      : "0 0 20px rgba(239, 68, 68, 0.5), inset 0 0 10px rgba(239, 68, 68, 0.2)"; // Red for degraded
+  }
+
+  // Update popup content - regenerate HTML to ensure it shows correct status
+  const popup = marker.getPopup();
+  if (popup && tower) {
+    // Update popup HTML with current health status
+    popup.setHTML(`
+      <div style="
+        padding: 12px; 
+        font-family: system-ui;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(20px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      ">
+        <h3 style="margin: 0 0 8px 0; font-weight: 700; color: white; font-size: 16px;">${tower.id}</h3>
+        <p style="margin: 0 0 6px 0; font-size: 13px; color: rgba(255, 255, 255, 0.7);">${tower.region} Region</p>
+        <div class="tower-health-badge" data-health="${health}" style="
+          display: inline-flex; 
+          align-items: center; 
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          background: ${health === "ok" ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)"};
+          border: 1px solid ${health === "ok" ? "rgba(34, 197, 94, 0.4)" : "rgba(239, 68, 68, 0.4)"};
+          color: ${health === "ok" ? "rgb(34, 197, 94)" : "rgb(239, 68, 68)"};
+        ">
+          <span style="font-size: 8px;">●</span>
+          <span class="tower-health-text">${health === "ok" ? "Operational" : "Degraded"}</span>
+        </div>
+        <p style="margin: 8px 0 0 0; font-size: 11px; color: rgba(255, 255, 255, 0.5); font-style: italic;">
+          Click for details
+        </p>
+      </div>
+    `);
+  }
+};
+
 // Helper function to add tower markers
 const addTowerMarker = (
   tower: Tower, 
@@ -375,7 +454,7 @@ const addTowerMarker = (
   pulse.style.borderRadius = "50%";
   pulse.style.border = tower.health === "ok" 
     ? "2px solid rgba(34, 197, 94, 0.6)" 
-    : "2px solid rgba(234, 179, 8, 0.6)";
+    : "2px solid rgba(239, 68, 68, 0.6)"; // Red for degraded
   pulse.style.animation = "pulse 2s ease-out infinite";
   pulse.style.pointerEvents = "none"; // Don't interfere with marker clicks
   pulse.style.zIndex = "1"; // Behind the inner circle
@@ -395,13 +474,13 @@ const addTowerMarker = (
   inner.style.backdropFilter = "blur(10px)";
   inner.style.border = tower.health === "ok" 
     ? "3px solid rgba(34, 197, 94, 0.8)" 
-    : "3px solid rgba(234, 179, 8, 0.8)";
+    : "3px solid rgba(239, 68, 68, 0.8)"; // Red for degraded
   inner.style.backgroundColor = tower.health === "ok" 
     ? "rgba(34, 197, 94, 0.2)" 
-    : "rgba(234, 179, 8, 0.2)";
+    : "rgba(239, 68, 68, 0.2)"; // Red for degraded
   inner.style.boxShadow = tower.health === "ok"
     ? "0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2)"
-    : "0 0 20px rgba(234, 179, 8, 0.5), inset 0 0 10px rgba(234, 179, 8, 0.2)";
+    : "0 0 20px rgba(239, 68, 68, 0.5), inset 0 0 10px rgba(239, 68, 68, 0.2)"; // Red for degraded
   inner.style.display = "flex";
   inner.style.alignItems = "center";
   inner.style.justifyContent = "center";
@@ -432,14 +511,14 @@ const addTowerMarker = (
     inner.style.transform = "translate(-50%, -50%) scale(1.2)";
     inner.style.boxShadow = tower.health === "ok"
       ? "0 0 30px rgba(34, 197, 94, 0.8), inset 0 0 15px rgba(34, 197, 94, 0.3)"
-      : "0 0 30px rgba(234, 179, 8, 0.8), inset 0 0 15px rgba(234, 179, 8, 0.3)";
+      : "0 0 30px rgba(239, 68, 68, 0.8), inset 0 0 15px rgba(239, 68, 68, 0.3)"; // Red for degraded
   });
 
   el.addEventListener("mouseleave", () => {
     inner.style.transform = "translate(-50%, -50%) scale(1)";
     inner.style.boxShadow = tower.health === "ok"
       ? "0 0 20px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.2)"
-      : "0 0 20px rgba(234, 179, 8, 0.5), inset 0 0 10px rgba(234, 179, 8, 0.2)";
+      : "0 0 20px rgba(239, 68, 68, 0.5), inset 0 0 10px rgba(239, 68, 68, 0.2)"; // Red for degraded
   });
 
   // Add click handler
@@ -449,7 +528,7 @@ const addTowerMarker = (
     }
   });
 
-  // Create tooltip popup
+  // Create tooltip popup with data attributes for easy updates
   const popup = new mapboxgl.Popup({ 
     offset: 25,
     closeButton: false,
@@ -465,7 +544,7 @@ const addTowerMarker = (
     ">
       <h3 style="margin: 0 0 8px 0; font-weight: 700; color: white; font-size: 16px;">${tower.id}</h3>
       <p style="margin: 0 0 6px 0; font-size: 13px; color: rgba(255, 255, 255, 0.7);">${tower.region} Region</p>
-      <div style="
+      <div class="tower-health-badge" data-health="${tower.health}" style="
         display: inline-flex; 
         align-items: center; 
         gap: 6px;
@@ -473,12 +552,12 @@ const addTowerMarker = (
         border-radius: 8px;
         font-size: 12px;
         font-weight: 600;
-        background: ${tower.health === "ok" ? "rgba(34, 197, 94, 0.2)" : "rgba(234, 179, 8, 0.2)"};
-        border: 1px solid ${tower.health === "ok" ? "rgba(34, 197, 94, 0.4)" : "rgba(234, 179, 8, 0.4)"};
-        color: ${tower.health === "ok" ? "rgb(34, 197, 94)" : "rgb(234, 179, 8)"};
+        background: ${tower.health === "ok" ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)"};
+        border: 1px solid ${tower.health === "ok" ? "rgba(34, 197, 94, 0.4)" : "rgba(239, 68, 68, 0.4)"};
+        color: ${tower.health === "ok" ? "rgb(34, 197, 94)" : "rgb(239, 68, 68)"};
       ">
         <span style="font-size: 8px;">●</span>
-        ${tower.health === "ok" ? "Operational" : "Degraded"}
+        <span class="tower-health-text">${tower.health === "ok" ? "Operational" : "Degraded"}</span>
       </div>
       <p style="margin: 8px 0 0 0; font-size: 11px; color: rgba(255, 255, 255, 0.5); font-style: italic;">
         Click for details
