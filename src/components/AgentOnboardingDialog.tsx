@@ -23,15 +23,15 @@ export const AgentOnboardingDialog = () => {
     // Check if user has seen the onboarding before
     const hasSeenOnboarding = localStorage.getItem(AGENT_ONBOARDING_KEY);
 
+    // Only show ONCE on initial mount if not seen
     if (!hasSeenOnboarding) {
-      // Show dialog after a short delay for better UX
       const timer = setTimeout(() => {
         setIsOpen(true);
       }, 1500);
 
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, []); // Empty dependency array - only runs once on mount
 
   const handleAccept = async () => {
     setIsEnabling(true);
@@ -76,13 +76,9 @@ export const AgentOnboardingDialog = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[500px] backdrop-blur-xl bg-white/10 border-white/20 text-white shadow-2xl rounded-2xl relative overflow-hidden group">
-        {/* Liquid glass effect overlays */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#5A0040]/30 via-[#E20074]/20 to-[#5A0040]/30 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-tl from-white/10 via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
-        {/* Content with relative positioning */}
-        <div className="relative z-10">
+      <DialogContent className="sm:max-w-[500px] bg-[#5A0040] border-[#E20074] border-2 text-white shadow-2xl rounded-2xl">
+        {/* Content */}
+        <div>
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-white drop-shadow-lg">
               Welcome to T-Care AI Assistant! 🤖
@@ -115,8 +111,8 @@ export const AgentOnboardingDialog = () => {
               </ul>
             </div>
 
-            <div className="bg-white/10 rounded-xl p-4 border border-white/20 backdrop-blur-sm">
-              <p className="text-sm text-white/90">
+            <div className="bg-black/30 rounded-xl p-4 border border-[#E20074]/40">
+              <p className="text-sm text-white">
                 <strong className="text-white">Note:</strong> The AI assistant requires microphone access to provide voice support.
                 You can enable or disable it anytime using the toggle in the navigation bar.
               </p>
@@ -128,14 +124,14 @@ export const AgentOnboardingDialog = () => {
               variant="outline"
               onClick={handleDecline}
               disabled={isEnabling}
-              className="bg-white/10 hover:bg-white/20 text-white border-white/30 hover:border-white/40 rounded-xl transition-all duration-300 backdrop-blur-sm"
+              className="bg-black/40 hover:bg-black/60 text-white border-white/50 hover:border-white/70 rounded-xl transition-all duration-300"
             >
               Maybe Later
             </Button>
             <Button
               onClick={handleAccept}
               disabled={isEnabling}
-              className="bg-gradient-to-r from-[#5A0040] to-[#E20074] text-white border-0 shadow-lg hover:shadow-xl hover:brightness-110 rounded-xl transition-all duration-300"
+              className="bg-[#E20074] hover:bg-[#E20074]/80 text-white border-0 shadow-lg hover:shadow-xl rounded-xl transition-all duration-300"
             >
               {isEnabling ? "Enabling..." : "Enable AI Assistant"}
             </Button>
