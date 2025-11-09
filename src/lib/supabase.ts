@@ -73,6 +73,8 @@ export interface Device {
   _fromDatabase?: boolean;
 }
 
+export type UserRole = 'user' | 'admin';
+
 export interface User {
   id: string;
   clerk_user_id: string;
@@ -81,6 +83,7 @@ export interface User {
   last_name?: string;
   profile_image_url?: string;
   phone_number?: string;
+  role: UserRole;
   created_at: string;
   updated_at: string;
   last_sign_in_at?: string;

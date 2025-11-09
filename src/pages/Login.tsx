@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,14 +6,45 @@ import { Label } from "@/components/ui/label";
 import { TopNav } from "@/components/TopNav";
 import LiquidEther from "@/components/LiquidEther";
 import { useState } from "react";
+import { useUser } from "@/contexts/UserContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useUser();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt:", { email, password });
+    setIsLoading(true);
+
+    try {
+      await login(email, password);
+
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+
+      // Redirect based on role
+      // Admin users will be redirected to /admin, regular users to /plans
+      if (email.includes('admin')) {
+        navigate('/admin');
+      } else {
+        navigate('/plans');
+      }
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // shared gradient classes
@@ -105,12 +136,13 @@ const Login = () => {
                     {/* Sign In button with magenta gradient */}
                     <Button
                       type="submit"
+                      disabled={isLoading}
                       className={`
                         w-full py-6 text-base font-medium rounded-xl transition-all duration-300
                         ${MAGENTA_GRADIENT}
                       `}
                     >
-                      Sign In
+                      {isLoading ? "Signing In..." : "Sign In"}
                     </Button>
 
                     <div className="text-center pt-4">
