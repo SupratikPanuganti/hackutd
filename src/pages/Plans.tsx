@@ -21,7 +21,7 @@ const Plans = () => {
     queryFn: getServicePlans,
   });
 
-  const plans: ServicePlan[] = data ?? [];
+  const plans: ServicePlan[] = useMemo(() => data ?? [], [data]);
   const isMockData = useMemo(
     () => plans.length > 0 && plans.every((plan) => plan._fromDatabase === false),
     [plans],

@@ -64,8 +64,10 @@ export const MapboxMap = ({ className, onTowerClick, userLocation }: MapboxMapPr
 
     return () => {
       // Clean up all markers
-      markersMapRef.current.forEach(marker => marker.remove());
-      markersMapRef.current.clear();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const markersMap = markersMapRef.current;
+      markersMap.forEach(marker => marker.remove());
+      markersMap.clear();
       if (userLocationMarkerRef.current) {
         userLocationMarkerRef.current.remove();
         userLocationMarkerRef.current = null;

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { isVoiceIntegrationConfigured, logVapiDebug, logVapiWarn, startVoiceCall, stopVoiceCall } from '@/lib/vapiClient';
 import { ContextUpdater, ContextUpdate } from '@/services/contextUpdater';
@@ -133,7 +133,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, []);
 
   // Function to build current context for updates
-  const buildContextUpdate = (): ContextUpdate => {
+  const buildContextUpdate = useCallback((): ContextUpdate => {
     return {
       sessionId,
       timestamp: Date.now(),
@@ -142,7 +142,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       sentimentTrend,
       recentMessages: conversationHistory,
     };
-  };
+  }, [sessionId, screenContext, currentSentiment, sentimentTrend, conversationHistory]);
 
   // Start/stop context updater when voice active changes
   useEffect(() => {
@@ -160,7 +160,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         logVapiDebug('Context updater stopped - Voice inactive');
       }
     }
-  }, [isEnabled, isVoiceActive, sessionId, screenContext, currentSentiment, sentimentTrend, conversationHistory]);
+  }, [isEnabled, isVoiceActive, buildContextUpdate]);
 
   // Update screen context on route change
   useEffect(() => {
@@ -261,6 +261,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         wsRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEnabled, hasPermissions.camera]);
 
   useEffect(() => {

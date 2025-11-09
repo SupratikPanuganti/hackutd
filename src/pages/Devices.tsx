@@ -111,7 +111,7 @@ const Devices = () => {
     placeholderData: (previousData) => previousData,
   });
 
-  const devices: Device[] = data ?? [];
+  const devices: Device[] = useMemo(() => data ?? [], [data]);
   const isMockData = useMemo(
     () => devices.length > 0 && devices.every((device) => device._fromDatabase === false),
     [devices]

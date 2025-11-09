@@ -308,8 +308,9 @@ export const getTowers = async (): Promise<Tower[]> => {
     } else if (data && data.length === 0) {
       console.warn('⚠️ WARNING: Supabase returned empty result (no towers found)');
     }
-  } catch (error: any) {
-    console.error('❌ EXCEPTION: Failed to fetch from Supabase:', error?.message || error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('❌ EXCEPTION: Failed to fetch from Supabase:', err?.message || error);
   }
 
   // Fallback to mock data
