@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface StatusCardProps {
@@ -27,17 +26,12 @@ export const StatusCard = ({ score, sparkline, health, eta, towerId, stepsTried 
           <Badge 
             variant={health === "ok" ? "default" : "secondary"}
             data-testid="status-badge"
+            className="rounded-lg"
           >
             {health === "ok" ? (
-              <>
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Operational
-              </>
+              <>✓ Operational</>
             ) : (
-              <>
-                <AlertCircle className="h-3 w-3 mr-1" />
-                Degraded
-              </>
+              <>⚠ Degraded</>
             )}
           </Badge>
         </div>
@@ -66,7 +60,7 @@ export const StatusCard = ({ score, sparkline, health, eta, towerId, stepsTried 
         {/* ETA */}
         {eta && (
           <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">⏱</span>
             <span className="text-muted-foreground">Estimated resolution:</span>
             <span className="font-semibold" data-testid="eta-minutes">{eta} minutes</span>
           </div>
