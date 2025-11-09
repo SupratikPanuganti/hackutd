@@ -12,7 +12,14 @@
       "Bash(git merge:*)",
       "Bash(git stash:*)",
       "Bash(npm install:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(git fetch:*)",
+      "Bash(npm run dev:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(python:*)",
+      "Bash(taskkill:*)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { isVoiceIntegrationConfigured } from "@/lib/vapiClient";
 import { useToast } from "@/hooks/use-toast";
+import { SentimentDisplay } from "@/components/SentimentDisplay";
 
 export const TopNav = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -140,6 +141,7 @@ export const TopNav = () => {
 
           {/* Right side - Desktop */}
           <div className="hidden md:flex items-center space-x-2 lg:space-x-3 relative z-20">
+            <SentimentDisplay />
             <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm border">
               <span className="text-xs font-medium">Agent Mode</span>
               <Switch
@@ -219,6 +221,11 @@ export const TopNav = () => {
                 </Button>
               </Link>
             ))}
+
+            {/* Sentiment Display Mobile */}
+            <div className="w-full">
+              <SentimentDisplay />
+            </div>
 
             {/* AI Toggle */}
             <div className="w-full justify-between inline-flex items-center gap-2 rounded-xl relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm py-3 px-4 border">

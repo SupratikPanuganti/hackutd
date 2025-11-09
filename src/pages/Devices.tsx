@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getDevices } from "@/lib/supabaseService";
+import { Device } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import LiquidEther from "@/components/LiquidEther";
 
@@ -28,13 +29,13 @@ const Devices = () => {
     }
   }, [activeFilter]);
 
-  const { data, isLoading, isError, error, isFetching } = useQuery({
+  const { data, isLoading, isError, error, isFetching } = useQuery<Device[]>({
     queryKey: ["devices", filters],
     queryFn: () => getDevices(filters),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
-  const devices = data ?? [];
+  const devices: Device[] = data ?? [];
   const isMockData = useMemo(
     () => devices.length > 0 && devices.every((device) => device._fromDatabase === false),
     [devices],
@@ -172,8 +173,13 @@ const Devices = () => {
                   return (
                     <Card key={device.id} className="hover:shadow-2xl transition-all duration-300 rounded-2xl border-white/20 shadow-xl backdrop-blur-xl bg-white/10 hover:bg-white/15 hover:scale-105">
                       <CardHeader>
-                        <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl mb-4 flex items-center justify-center border border-white/20 overflow-hidden">
-                          <img src={deviceImage} alt={device.name} className="object-contain w-full h-full p-6" loading="lazy" />
+                        <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl mb-4 flex items-center justify-center border border-white/20 overflow-hidden relative">
+                          <img 
+                            src={deviceImage} 
+                            alt={device.name} 
+                            className="object-contain w-full h-full p-6"
+                            loading="lazy" 
+                          />
                         </div>
                         <CardTitle className="text-xl text-white drop-shadow-md flex items-center gap-2">
                           {device.name}
