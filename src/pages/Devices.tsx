@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { TopNav } from "@/components/TopNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { devices } from "@/lib/mockData";
+import { getDevices } from "@/lib/supabaseService";
 import { cn } from "@/lib/utils";
 import LiquidEther from "@/components/LiquidEther";
 
@@ -12,20 +13,32 @@ type FilterType = "all" | "iOS" | "Android" | "5G" | "eSIM";
 const Devices = () => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
-  const filteredDevices = devices.filter((device) => {
+  const filters = useMemo(() => {
     switch (activeFilter) {
       case "iOS":
-        return device.os === "iOS";
+        return { os: "iOS" };
       case "Android":
-        return device.os === "Android";
+        return { os: "Android" };
       case "5G":
-        return device.supports5G;
+        return { supports_5g: true };
       case "eSIM":
-        return device.supportsESIM;
+        return { supports_esim: true };
       default:
-        return true;
+        return {};
     }
+  }, [activeFilter]);
+
+  const { data, isLoading, isError, error, isFetching } = useQuery({
+    queryKey: ["devices", filters],
+    queryFn: () => getDevices(filters),
+    keepPreviousData: true,
   });
+
+  const devices = data ?? [];
+  const isMockData = useMemo(
+    () => devices.length > 0 && devices.every((device) => device._fromDatabase === false),
+    [devices],
+  );
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
@@ -117,45 +130,86 @@ const Devices = () => {
                 eSIM
               </Button>
             </div>
+            {isMockData && (
+              <div className="mt-6 mx-auto max-w-2xl">
+                <Card className="border-yellow-400/30 bg-yellow-500/10 text-white">
+                  <CardContent className="py-4">
+                    <p className="text-sm">
+                      Unable to reach Supabase. Showing mock devices instead. Verify your Supabase credentials to see live inventory.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </section>
 
         {/* Device Grid */}
         <section className="py-8">
           <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {filteredDevices.map((device) => (
-                <Card key={device.id} className="hover:shadow-2xl transition-all duration-300 rounded-2xl border-white/20 shadow-xl backdrop-blur-xl bg-white/10 hover:bg-white/15 hover:scale-105">
-                  <CardHeader>
-                    <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl mb-4 flex items-center justify-center border border-white/20">
-                      <span className="text-6xl">📱</span>
-                    </div>
-                    <CardTitle className="text-xl text-white drop-shadow-md">{device.name}</CardTitle>
-                    <CardDescription className="text-2xl font-bold text-white mt-2 drop-shadow-md">
-                      ${device.price}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <Badge variant="secondary" className="rounded-lg bg-white/20 text-white border-white/20 backdrop-blur-sm">{device.os}</Badge>
-                      {device.supports5G && (
-                        <Badge variant="outline" className="rounded-lg bg-white/10 text-white border-white/20 backdrop-blur-sm">
-                          5G
-                        </Badge>
-                      )}
-                      {device.supportsESIM && (
-                        <Badge variant="outline" className="rounded-lg bg-white/10 text-white border-white/20 backdrop-blur-sm">
-                          eSIM
-                        </Badge>
-                      )}
-                    </div>
-                    <Button className="w-full rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/30 backdrop-blur-sm" variant="outline">
-                      View Details
-                    </Button>
-                  </CardContent>
+            {(isLoading || isFetching) && (
+              <div className="flex justify-center mb-8">
+                <Card className="border-white/20 bg-white/5 text-white backdrop-blur-md px-6 py-4">
+                  <span>{isLoading ? "Loading devices…" : "Updating devices…"}</span>
                 </Card>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {isError && (
+              <div className="flex justify-center mb-8">
+                <Card className="border-red-400/40 bg-red-500/10 text-white backdrop-blur-md px-6 py-4">
+                  <span>Failed to load devices: {(error as Error).message}</span>
+                </Card>
+              </div>
+            )}
+
+            {!isLoading && !isError && (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                {devices.map((device) => {
+                  const price = device.price !== null ? `$${device.price}` : "Contact sales";
+                  const deviceImage = device.devices_pics_url || device.image_url || "/placeholder.svg";
+
+                  return (
+                    <Card key={device.id} className="hover:shadow-2xl transition-all duration-300 rounded-2xl border-white/20 shadow-xl backdrop-blur-xl bg-white/10 hover:bg-white/15 hover:scale-105">
+                      <CardHeader>
+                        <div className="aspect-square bg-white/10 backdrop-blur-sm rounded-2xl mb-4 flex items-center justify-center border border-white/20 overflow-hidden">
+                          <img src={deviceImage} alt={device.name} className="object-contain w-full h-full p-6" loading="lazy" />
+                        </div>
+                        <CardTitle className="text-xl text-white drop-shadow-md flex items-center gap-2">
+                          {device.name}
+                          {device._fromDatabase && (
+                            <Badge variant="outline" className="bg-green-500/20 border-green-500/40 text-green-100">
+                              Live
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription className="text-2xl font-bold text-white mt-2 drop-shadow-md">
+                          {price}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <Badge variant="secondary" className="rounded-lg bg-white/20 text-white border-white/20 backdrop-blur-sm">{device.os}</Badge>
+                          {device.supports_5g && (
+                            <Badge variant="outline" className="rounded-lg bg-white/10 text-white border-white/20 backdrop-blur-sm">
+                              5G
+                            </Badge>
+                          )}
+                          {device.supports_esim && (
+                            <Badge variant="outline" className="rounded-lg bg-white/10 text-white border-white/20 backdrop-blur-sm">
+                              eSIM
+                            </Badge>
+                          )}
+                        </div>
+                        <Button className="w-full rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/30 backdrop-blur-sm" variant="outline">
+                          View Details
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
 

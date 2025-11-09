@@ -9,11 +9,12 @@ import json
 import re
 import time
 import threading
+import os
 from pathlib import Path
 
 # ================== CONFIG ==================
-CAMERA_INDEX    = 1
-NIM_API_KEY     = ""
+CAMERA_INDEX    = int(os.environ.get("CAMERA_INDEX", 1))
+NIM_API_KEY     = os.environ.get("NIM_API_KEY", "")
 VILA_URL        = "https://ai.api.nvidia.com/v1/vlm/nvidia/vila"
 
 WINDOW_SECONDS  = 5.0       # average over this window

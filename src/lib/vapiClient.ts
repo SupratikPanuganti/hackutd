@@ -1,7 +1,15 @@
 import Vapi from "@vapi-ai/web";
 
-const VAPI_PUBLIC_KEY = "e52c6894-3fc8-4e4a-8538-42478088c5c5";
-const VAPI_ASSISTANT_ID = "7498c76e-1e3c-46d7-8ab3-322c5c3793b2";
+const DEFAULT_VAPI_PUBLIC_KEY = "pk_local_dev_testing";
+const DEFAULT_VAPI_ASSISTANT_ID = "asst_local_dev_testing";
+const DEFAULT_VAPI_API_URL = "https://api.vapi.ai";
+
+const ENV_VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY;
+const ENV_VAPI_ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID;
+
+const VAPI_PUBLIC_KEY = ENV_VAPI_PUBLIC_KEY ?? DEFAULT_VAPI_PUBLIC_KEY;
+const VAPI_ASSISTANT_ID = ENV_VAPI_ASSISTANT_ID ?? DEFAULT_VAPI_ASSISTANT_ID;
+const VAPI_API_URL = import.meta.env.VITE_VAPI_API_URL ?? DEFAULT_VAPI_API_URL;
 
 let client: Vapi | null = null;
 const debugEnabled = true;
@@ -196,17 +204,23 @@ const getAssistantId = () => {
 
 export const getVapiClient = () => {
   if (!client) {
-    const baseUrl = import.meta.env.VITE_VAPI_API_URL;
+    const baseUrl = typeof window === "undefined" ? undefined : VAPI_API_URL;
     client = new Vapi(getPublicKey(), baseUrl || undefined);
     attachDebugListeners(client);
   }
   return client;
 };
 
+export const isVoiceIntegrationConfigured = () => Boolean(ENV_VAPI_PUBLIC_KEY && ENV_VAPI_ASSISTANT_ID);
+
 export const startVoiceCall = async (
   introPrompt?: string,
   contextPayload?: string,
 ) => {
+  if (!isVoiceIntegrationConfigured()) {
+    logVapiWarn("Voice integration not configured. Skipping startVoiceCall.");
+    return null;
+  }
   const vapi = getVapiClient();
   const assistantId = getAssistantId();
 
