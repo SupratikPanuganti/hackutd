@@ -251,10 +251,11 @@ export const startVoiceCall = async (
   const assistantId = getAssistantId();
 
   const waitForCallStartSuccess = new Promise<void>((resolve, reject) => {
+    // Increased timeout for poor network conditions (30 seconds)
     const timeout = setTimeout(() => {
       cleanup();
-      reject(new Error("Timed out waiting for voice call to start."));
-    }, 10000);
+      reject(new Error("Timed out waiting for voice call to start. This may be due to slow network connection."));
+    }, 30000); // Increased from 10s to 30s
 
     const cleanup = () => {
       clearTimeout(timeout);
@@ -277,10 +278,11 @@ export const startVoiceCall = async (
   });
 
   const waitForAssistantPlayable = new Promise<void>((resolve, reject) => {
+    // Increased timeout for poor network conditions (20 seconds)
     const timeout = setTimeout(() => {
       cleanup();
-      reject(new Error("Timed out waiting for assistant audio to become available."));
-    }, 5000);
+      reject(new Error("Timed out waiting for assistant audio to become available. Check your network connection."));
+    }, 20000); // Increased from 5s to 20s
 
     const cleanup = () => {
       clearTimeout(timeout);

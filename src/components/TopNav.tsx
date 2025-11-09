@@ -94,6 +94,14 @@ export const TopNav = () => {
           if (isVoiceIntegrationConfigured()) {
             try {
               console.log('[TopNav] ✅ Voice configured! Starting voice assistant...');
+              console.log('[TopNav] ⏳ This may take 10-30 seconds on slow networks...');
+
+              // Show loading toast for slow networks
+              toast({
+                title: "Connecting Voice...",
+                description: "Please wait, this may take up to 30 seconds on slow networks.",
+              });
+
               await startVoiceAssistant();
               toast({
                 title: "AI Agent Activated! 🎉",
@@ -105,11 +113,22 @@ export const TopNav = () => {
                 message: error instanceof Error ? error.message : 'Unknown error',
                 stack: error instanceof Error ? error.stack : undefined
               });
-              toast({
-                title: "Voice Failed",
-                description: `Voice couldn't start: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                variant: "destructive"
-              });
+
+              // Check if it's a timeout error (likely network issue)
+              const errorMessage = error instanceof Error ? error.message : '';
+              const isTimeout = errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('timed out');
+
+              if (isTimeout) {
+                toast({
+                  title: "Agent Mode Active (Camera Only)",
+                  description: "Voice timed out due to slow network. Sentiment analysis is working!",
+                });
+              } else {
+                toast({
+                  title: "Agent Mode Active (Camera Only)",
+                  description: `Voice unavailable: ${errorMessage}. Camera sentiment still active.`,
+                });
+              }
             }
           } else {
             console.warn('[TopNav] ⚠️ Voice integration NOT configured');
