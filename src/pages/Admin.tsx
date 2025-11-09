@@ -23,7 +23,7 @@ interface ParallelResponse {
   url: string;
   title: string;
   content: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 interface GeminiAnalysis {
@@ -286,11 +286,12 @@ CRITICAL: Ensure all scores are varied and realistic. For example, if Spectrum's
       setAnalysis(analysisData);
       console.log("✅ ANALYSIS COMPLETE AND STATE UPDATED");
 
-    } catch (err: any) {
-      console.error("❌ ERROR OCCURRED:", err);
-      console.error("Error Type:", err.constructor.name);
-      console.error("Error Message:", err.message);
-      console.error("Error Stack:", err.stack);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error("❌ ERROR OCCURRED:", error);
+      console.error("Error Type:", error.constructor.name);
+      console.error("Error Message:", error.message);
+      console.error("Error Stack:", error.stack);
 
       if (err.response) {
         console.error("HTTP Error Response:");

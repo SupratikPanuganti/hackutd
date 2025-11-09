@@ -41,8 +41,9 @@ export const getServicePlans = async (): Promise<ServicePlan[]> => {
       console.warn('⚠️ WARNING: Supabase returned empty result (no plans found)');
       console.warn('⚠️ Make sure you ran the SQL schema in Supabase. Using mock data.');
     }
-  } catch (error: any) {
-    console.error('❌ EXCEPTION: Failed to fetch from Supabase:', error?.message || error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('❌ EXCEPTION: Failed to fetch from Supabase:', err?.message || error);
     console.error('❌ Error details:', error);
   }
 
@@ -185,8 +186,9 @@ export const getDevices = async (filters?: {
       console.warn('⚠️ WARNING: Supabase returned empty result (no devices found)');
       console.warn('⚠️ Make sure you ran the SQL schema in Supabase. Using mock data.');
     }
-  } catch (error: any) {
-    console.error('❌ EXCEPTION: Failed to fetch from Supabase:', error?.message || error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('❌ EXCEPTION: Failed to fetch from Supabase:', err?.message || error);
     console.error('❌ Error details:', error);
   }
 
