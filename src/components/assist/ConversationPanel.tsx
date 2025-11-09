@@ -111,6 +111,10 @@ export const ConversationPanel = ({
   const { currentContext } = useAgentic();
   const { requestMicrophone } = useMediaPermissions();
 
+  // --- THEME: user bubble gradient (T-Mobile magenta) ---
+  const USER_BUBBLE_MAGENTA =
+    "bg-gradient-to-r from-[#5A0040] to-[#E20074] text-white border-0 shadow-lg hover:brightness-110";
+
   // Hydrate on mount / session change
   useEffect(() => {
     const restored = loadMessages(sessionId);
@@ -342,7 +346,7 @@ export const ConversationPanel = ({
                 className={cn(
                   "p-3 rounded-xl backdrop-blur-xl shadow-lg transition-all duration-300",
                   message.role === "user"
-                    ? "bg-white/20 text-white border border-white/30 hover:bg-white/25"
+                    ? USER_BUBBLE_MAGENTA
                     : "bg-white/10 text-white border border-white/20 hover:bg-white/15"
                 )}
               >

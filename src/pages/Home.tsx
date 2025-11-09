@@ -28,13 +28,13 @@ const Home = () => {
           autoRampDuration={0.6}
         />
       </div>
-      
+
       {/* Gradient Overlay for Depth */}
       <div className="fixed inset-0 z-[1] bg-gradient-to-b from-[#5A0040]/20 via-transparent to-[#E20074]/30 pointer-events-none" />
-      
+
       <div className="relative z-10 flex flex-col">
         <TopNav />
-        
+
         {/* Hero Section */}
         <section className="relative min-h-[85vh] flex items-center justify-center py-20">
           <div className="container mx-auto px-4 relative z-10">
@@ -47,17 +47,35 @@ const Home = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/plans">
-                  <Button 
-                    size="lg" 
-                    className="w-full sm:w-auto px-8 py-6 text-lg bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-xl font-medium transition-all duration-300 backdrop-blur-md shadow-xl hover:shadow-2xl hover:scale-105"
+                  <Button
+                    size="lg"
+                    className="
+                      w-full sm:w-auto px-8 py-6 text-lg rounded-xl font-medium
+                      transition-all duration-300 backdrop-blur-md
+                      shadow-xl hover:shadow-2xl hover:scale-105
+                      text-white
+                      border-2 border-white/40
+                      bg-white/10
+                      hover:bg-gradient-to-r hover:from-[#5A0040] hover:to-[#E20074]
+                      hover:border-transparent
+                    "
                   >
                     View Plans
                   </Button>
                 </Link>
                 <Link to="/status">
-                  <Button 
-                    size="lg" 
-                    className="w-full sm:w-auto px-8 py-6 text-lg bg-white/10 hover:bg-white/20 text-white border-2 border-white/40 rounded-xl font-medium backdrop-blur-md transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                  <Button
+                    size="lg"
+                    className="
+                      w-full sm:w-auto px-8 py-6 text-lg rounded-xl font-medium
+                      transition-all duration-300 backdrop-blur-md
+                      shadow-xl hover:shadow-2xl hover:scale-105
+                      text-white
+                      border-2 border-white/40
+                      bg-white/10
+                      hover:bg-gradient-to-r hover:from-[#5A0040] hover:to-[#E20074]
+                      hover:border-transparent
+                    "
                   >
                     Network Status
                   </Button>
@@ -90,8 +108,8 @@ const Home = () => {
                 </CardHeader>
                 <CardContent>
                   <Link to="/status">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       className="group text-white hover:text-white hover:bg-white/20 p-0 h-auto font-medium backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20"
                     >
                       Network Status →
@@ -111,8 +129,8 @@ const Home = () => {
                 </CardHeader>
                 <CardContent>
                   <Link to="/status">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       className="group text-white hover:text-white hover:bg-white/20 p-0 h-auto font-medium backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20"
                     >
                       Network Status →
@@ -132,8 +150,8 @@ const Home = () => {
                 </CardHeader>
                 <CardContent>
                   <Link to="/help">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       className="group text-white hover:text-white hover:bg-white/20 p-0 h-auto font-medium backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20"
                     >
                       Get Help →
@@ -156,8 +174,8 @@ const Home = () => {
                 Join millions of satisfied customers on America's fastest 5G network
               </p>
               <Link to="/plans">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md px-8 py-6 text-lg rounded-xl font-medium shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
                 >
                   See All Plans

@@ -15,7 +15,7 @@ const maskValue = (value: unknown) => {
   return `set (${trimmed.slice(0, 4)}…${trimmed.slice(-4)} | len=${trimmed.length})`;
 };
 
-const collectSnapshot = (envSource: Record<string, any> | undefined, keys: string[]) => {
+const collectSnapshot = (envSource: Record<string, unknown> | undefined, keys: string[]) => {
   if (!envSource) return {};
 
   return keys.reduce<Record<string, string>>((acc, key) => {
@@ -43,8 +43,8 @@ export const logClientEnvDiagnostics = () => {
     "VITE_VAPI_API_URL",
   ];
 
-  const importMetaEnv = (typeof import.meta !== "undefined" && (import.meta as any).env) || {};
-  const windowEnv = (window as any).__ENV__ || {};
+  const importMetaEnv = (typeof import.meta !== "undefined" && (import.meta as { env?: Record<string, unknown> }).env) || {};
+  const windowEnv = (window as typeof window & { __ENV__?: Record<string, unknown> }).__ENV__ || {};
 
   const snapshot = {
     mode: importMetaEnv.MODE,
@@ -54,7 +54,7 @@ export const logClientEnvDiagnostics = () => {
     windowEnvKeys: collectSnapshot(windowEnv, importantKeys),
   };
 
-  const alreadyLogged = (window as any).__ENV_DEBUG_LOGGED__;
+  const alreadyLogged = (window as typeof window & { __ENV_DEBUG_LOGGED__?: boolean }).__ENV_DEBUG_LOGGED__;
   if (alreadyLogged && importMetaEnv.PROD) {
     return;
   }
@@ -73,7 +73,7 @@ export const logClientEnvDiagnostics = () => {
       console.info("window.__ENV__ not detected");
     }
     console.groupEnd?.();
-    (window as any).__ENV_DEBUG_LOGGED__ = true;
+    (window as typeof window & { __ENV_DEBUG_LOGGED__?: boolean }).__ENV_DEBUG_LOGGED__ = true;
   } else if (!importMetaEnv.PROD) {
     // Update log in development when hot reloading
     console.info("🔁 Env Diagnostics update", {

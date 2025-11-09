@@ -16,6 +16,10 @@ const Login = () => {
     console.log("Login attempt:", { email, password });
   };
 
+  // shared gradient classes
+  const MAGENTA_GRADIENT =
+    "bg-gradient-to-r from-[#5A0040] to-[#E20074] text-white border-0 shadow-lg hover:shadow-xl hover:brightness-110";
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Full Page Three.js Background */}
@@ -98,9 +102,13 @@ const Login = () => {
                       />
                     </div>
 
+                    {/* Sign In button with magenta gradient */}
                     <Button
                       type="submit"
-                      className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md py-6 text-base font-medium rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                      className={`
+                        w-full py-6 text-base font-medium rounded-xl transition-all duration-300
+                        ${MAGENTA_GRADIENT}
+                      `}
                     >
                       Sign In
                     </Button>

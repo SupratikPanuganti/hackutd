@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAgentic } from '@/contexts/AgenticContext';
 import { ActionExecutor, Action, ActionResult } from '@/services/actionExecutor';
@@ -32,6 +32,34 @@ export const useVoiceActions = () => {
     });
   }, [location.pathname]);
 
+  // Execute action function
+  const executeAction = useCallback(async (action: Action) => {
+    if (!executorRef.current) return;
+
+    setIsProcessing(true);
+    setLastAction(action);
+
+    try {
+      const result = await executorRef.current.execute(action);
+      setLastResult(result);
+
+      // Add result to conversation
+      if (result.success) {
+        addMessage('assistant', result.message);
+      } else {
+        addMessage('assistant', `Sorry, I couldn't complete that action: ${result.message}`);
+      }
+
+      console.log('[useVoiceActions] Action executed:', { action, result });
+    } catch (error) {
+      console.error('[useVoiceActions] Error executing action:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addMessage('assistant', `Sorry, an error occurred: ${errorMessage}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [addMessage]);
+
   // Listen to VAPI messages for action commands
   useEffect(() => {
     if (!isVoiceActive) return;
@@ -39,7 +67,7 @@ export const useVoiceActions = () => {
     const vapi = getVapiClient();
     if (!vapi) return;
 
-    const handleMessage = (message: any) => {
+    const handleMessage = (message: unknown) => {
       try {
         console.log('[useVoiceActions] Received VAPI message:', message);
 
@@ -95,34 +123,7 @@ export const useVoiceActions = () => {
     return () => {
       vapi.off('message', handleMessage);
     };
-  }, [isVoiceActive, addMessage]);
-
-  const executeAction = async (action: Action) => {
-    if (!executorRef.current) return;
-
-    setIsProcessing(true);
-    setLastAction(action);
-
-    try {
-      const result = await executorRef.current.execute(action);
-      setLastResult(result);
-
-      // Add result to conversation
-      if (result.success) {
-        addMessage('assistant', result.message);
-      } else {
-        addMessage('assistant', `Sorry, I couldn't complete that action: ${result.message}`);
-      }
-
-      console.log('[useVoiceActions] Action executed:', { action, result });
-    } catch (error) {
-      console.error('[useVoiceActions] Error executing action:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      addMessage('assistant', `Sorry, an error occurred: ${errorMessage}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  }, [isVoiceActive, addMessage, executeAction]);
 
   const manualExecute = async (command: string) => {
     if (!executorRef.current) return;

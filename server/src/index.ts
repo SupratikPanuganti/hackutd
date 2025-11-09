@@ -94,10 +94,26 @@ wss.on('connection', (ws: WebSocket) => {
 
       // Handle start/stop commands
       if (data.type === 'start') {
-        const cameraIndex = data.cameraIndex || 1;
+        const cameraIndex = data.cameraIndex ?? 0;  // Default to camera 0 (front camera)
         sentimentService.start(cameraIndex);
+
+        // Send status update immediately to the requesting client
+        ws.send(
+          JSON.stringify({
+            type: 'status',
+            data: { running: true },
+          })
+        );
       } else if (data.type === 'stop') {
         sentimentService.stop();
+
+        // Send status update immediately
+        ws.send(
+          JSON.stringify({
+            type: 'status',
+            data: { running: false },
+          })
+        );
       }
     } catch (error) {
       console.error('Error processing WebSocket message:', error);
@@ -122,6 +138,8 @@ sentimentService.on('sentiment', (data: SentimentData) => {
     data,
   });
 
+  console.log(`[WEBSOCKET] Broadcasting sentiment to ${clients.size} clients:`, data);
+
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
@@ -135,6 +153,8 @@ sentimentService.on('started', () => {
     type: 'status',
     data: { running: true },
   });
+
+  console.log(`[WEBSOCKET] Broadcasting service STARTED status to ${clients.size} clients`);
 
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
@@ -211,7 +231,7 @@ app.post('/api/sentiment/start', (req, res) => {
     });
   }
 
-  sentimentService.start(cameraIndex || 1);
+  sentimentService.start(cameraIndex ?? 0);  // Default to camera 0 (front camera)
 
   res.json({
     message: 'Sentiment service started',

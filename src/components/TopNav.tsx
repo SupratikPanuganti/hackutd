@@ -6,19 +6,27 @@ import { cn } from "@/lib/utils";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { isVoiceIntegrationConfigured } from "@/lib/vapiClient";
 import { useToast } from "@/hooks/use-toast";
+import { SentimentDisplay } from "@/components/SentimentDisplay";
 
 export const TopNav = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTogglingAgent, setIsTogglingAgent] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hoveringPath, setHoveringPath] = useState<string | null>(null); // NEW
   const { isEnabled, enableAgenticMode, disableAgenticMode, startVoiceAssistant, stopVoiceAssistant } = useAgentic();
   const { toast } = useToast();
   const location = useLocation();
 
+  // Shared T-Mobile magenta gradient
+  const MAGENTA_GRADIENT =
+    "bg-gradient-to-r from-[#5A0040] to-[#E20074] text-white border-0 shadow-lg hover:shadow-xl";
+
+  // Hover-only gradient (for inactive tabs)
+  const MAGENTA_HOVER =
+    "hover:bg-gradient-to-r hover:from-[#5A0040] hover:to-[#E20074] hover:text-white hover:border-transparent";
+
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -31,57 +39,37 @@ export const TopNav = () => {
     { to: "/admin", label: "Admin" },
   ];
 
+  const isActive = (to: string) =>
+    location.pathname === to || (to !== "/" && location.pathname.startsWith(to));
+
   const handleAgentToggle = useCallback(async () => {
     if (isTogglingAgent) return;
-
     setIsTogglingAgent(true);
-
     try {
       if (isEnabled) {
         await stopVoiceAssistant();
         disableAgenticMode();
-        toast({
-          title: "AI Agent Disabled",
-          description: "AI agent mode has been turned off.",
-        });
+        toast({ title: "AI Agent Disabled", description: "AI agent mode has been turned off." });
       } else {
         const success = await enableAgenticMode();
-
         if (success) {
           if (isVoiceIntegrationConfigured()) {
             try {
               await startVoiceAssistant();
-              toast({
-                title: "AI Agent Activated! 🎉",
-                description: "Your AI assistant is now speaking. How can I help you?",
-              });
+              toast({ title: "AI Agent Activated! 🎉", description: "Your AI assistant is now speaking. How can I help you?" });
             } catch (error) {
               console.error("Failed to start voice assistant after enabling agent mode", error);
-              toast({
-                title: "Agent Mode Enabled",
-                description: "Agent mode is active, but we couldn't start voice assistance. Check your AI configuration.",
-              });
+              toast({ title: "Agent Mode Enabled", description: "Agent mode is active, but we couldn't start voice assistance. Check your AI configuration." });
             }
           } else {
-            toast({
-              title: "Agent Mode Enabled",
-              description: "Voice integration is disabled in this test build, so audio won't start automatically.",
-            });
+            toast({ title: "Agent Mode Enabled", description: "Voice integration is disabled in this test build, so audio won't start automatically." });
           }
         } else {
-          toast({
-            title: "Permissions Required",
-            description: "Please grant camera or microphone access to enable AI agent mode.",
-            variant: "destructive",
-          });
+          toast({ title: "Permissions Required", description: "Please grant camera or microphone access to enable AI agent mode.", variant: "destructive" });
         }
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "We couldn't toggle the AI agent mode. Please try again.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Error", description: "We couldn't toggle the AI agent mode. Please try again.", variant: "destructive" });
     } finally {
       setIsTogglingAgent(false);
     }
@@ -120,26 +108,39 @@ export const TopNav = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1 relative z-20">
-            {links.map((link) => (
-              <Link key={link.to} to={link.to} className="relative z-20">
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "text-white transition-all duration-200 rounded-xl px-4 py-2 relative z-20 backdrop-blur-sm",
-                    "hover:bg-white/20 hover:text-white hover:shadow-sm hover:border-white/30 border border-transparent",
-                    (location.pathname === link.to ||
-                      (link.to !== "/" && location.pathname.startsWith(link.to))) &&
-                      "bg-white/15 text-white border border-white/30 shadow-sm"
-                  )}
-                >
-                  {link.label}
-                </Button>
-              </Link>
-            ))}
+            {links.map((link) => {
+              const active = isActive(link.to);
+              const showActiveGradient =
+                active && (!hoveringPath || hoveringPath === link.to);
+
+              return (
+                <Link key={link.to} to={link.to} className="relative z-20">
+                  <Button
+                    variant="ghost"
+                    onMouseEnter={() => setHoveringPath(link.to)}
+                    onMouseLeave={() => setHoveringPath(null)}
+                    className={cn(
+                      "rounded-xl px-4 py-2 transition-all duration-200 backdrop-blur-sm",
+                      showActiveGradient
+                        ? cn(MAGENTA_GRADIENT, "hover:brightness-110")
+                        : cn(
+                          "text-white border border-transparent",
+                          "bg-transparent",
+                          "hover:brightness-110",
+                          MAGENTA_HOVER // magenta on hover for inactive OR when another is hovered
+                        )
+                    )}
+                  >
+                    {link.label}
+                  </Button>
+                </Link>
+              );
+            })}
           </div>
 
           {/* Right side - Desktop */}
           <div className="hidden md:flex items-center space-x-2 lg:space-x-3 relative z-20">
+            <SentimentDisplay />
             <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm border">
               <span className="text-xs font-medium">Agent Mode</span>
               <Switch
@@ -152,21 +153,17 @@ export const TopNav = () => {
                 )}
               />
             </div>
+            {/* Sign In only, gradient */}
             <Link to="/login" className="relative z-20">
               <Button
-                variant="outline"
                 size="sm"
-                className="inline-flex rounded-xl relative z-20 transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 border-white/20 bg-white/10 text-white backdrop-blur-sm"
+                className={cn(
+                  "inline-flex rounded-xl relative z-20 transition-all duration-300 backdrop-blur-md",
+                  MAGENTA_GRADIENT,
+                  "px-4 py-2 hover:brightness-110"
+                )}
               >
                 Sign In
-              </Button>
-            </Link>
-            <Link to="/signup" className="relative z-20">
-              <Button
-                size="sm"
-                className="inline-flex rounded-xl relative z-20 transition-all duration-300 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md shadow-lg hover:shadow-xl"
-              >
-                Sign Up
               </Button>
             </Link>
           </div>
@@ -208,17 +205,26 @@ export const TopNav = () => {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-white transition-all rounded-xl relative z-20 backdrop-blur-sm py-3",
-                    "hover:bg-white/20 border border-transparent",
-                    (location.pathname === link.to ||
-                      (link.to !== "/" && location.pathname.startsWith(link.to))) &&
-                      "bg-white/15 text-white border border-white/30"
+                    "w-full justify-start rounded-xl relative z-20 backdrop-blur-sm py-3 transition-all",
+                    isActive(link.to)
+                      ? cn(MAGENTA_GRADIENT, "hover:brightness-110")
+                      : cn(
+                        "text-white border border-transparent",
+                        "bg-transparent",
+                        "hover:brightness-110",
+                        MAGENTA_HOVER
+                      )
                   )}
                 >
                   {link.label}
                 </Button>
               </Link>
             ))}
+
+            {/* Sentiment Display Mobile */}
+            <div className="w-full">
+              <SentimentDisplay />
+            </div>
 
             {/* AI Toggle */}
             <div className="w-full justify-between inline-flex items-center gap-2 rounded-xl relative z-20 border-white/20 bg-white/10 text-white backdrop-blur-sm py-3 px-4 border">
@@ -237,26 +243,19 @@ export const TopNav = () => {
               />
             </div>
 
-            {/* Sign In / Sign Up */}
-            <div className="flex gap-2">
-              <Link to="/login" className="flex-1 relative z-20" onClick={() => setMobileMenuOpen(false)}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full rounded-xl relative z-20 transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 border-white/20 bg-white/10 text-white backdrop-blur-sm py-3"
-                >
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/signup" className="flex-1 relative z-20" onClick={() => setMobileMenuOpen(false)}>
-                <Button
-                  size="sm"
-                  className="w-full rounded-xl relative z-20 transition-all duration-300 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md shadow-lg hover:shadow-xl py-3"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
+            {/* Sign In only (gradient) */}
+            <Link to="/login" className="flex-1 relative z-20" onClick={() => setMobileMenuOpen(false)}>
+              <Button
+                size="sm"
+                className={cn(
+                  "w-full rounded-xl relative z-20 transition-all duration-300 backdrop-blur-md py-3",
+                  MAGENTA_GRADIENT,
+                  "hover:brightness-110"
+                )}
+              >
+                Sign In
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

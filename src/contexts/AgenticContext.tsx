@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { isVoiceIntegrationConfigured, logVapiDebug, logVapiWarn, startVoiceCall, stopVoiceCall } from '@/lib/vapiClient';
 import { ContextUpdater, ContextUpdate } from '@/services/contextUpdater';
@@ -133,7 +133,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, []);
 
   // Function to build current context for updates
-  const buildContextUpdate = (): ContextUpdate => {
+  const buildContextUpdate = useCallback((): ContextUpdate => {
     return {
       sessionId,
       timestamp: Date.now(),
@@ -142,7 +142,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
       sentimentTrend,
       recentMessages: conversationHistory,
     };
-  };
+  }, [sessionId, screenContext, currentSentiment, sentimentTrend, conversationHistory]);
 
   // Start/stop context updater when voice active changes
   useEffect(() => {
@@ -160,7 +160,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         logVapiDebug('Context updater stopped - Voice inactive');
       }
     }
-  }, [isEnabled, isVoiceActive, sessionId, screenContext, currentSentiment, sentimentTrend, conversationHistory]);
+  }, [isEnabled, isVoiceActive, buildContextUpdate]);
 
   // Update screen context on route change
   useEffect(() => {
@@ -194,7 +194,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         ws.onopen = () => {
           logVapiDebug('Sentiment WebSocket connected - Agent Mode is ON');
           // Auto-start sentiment service when Agent Mode is enabled
-          ws.send(JSON.stringify({ type: 'start', cameraIndex: 1 }));
+          ws.send(JSON.stringify({ type: 'start', cameraIndex: 0 }));
         };
 
         ws.onmessage = (event) => {
@@ -206,6 +206,8 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
                 ...message.data,
                 label: getSentimentLabel(message.data.value),
               };
+
+              console.log('[SENTIMENT DEBUG] Received sentiment:', sentimentData);
 
               setCurrentSentiment(sentimentData);
               setSentimentHistory(prev => {
@@ -219,6 +221,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
                 calculateTrend();
               }
             } else if (message.type === 'status') {
+              console.log('[SENTIMENT DEBUG] Service status:', message.data.running);
               setIsSentimentServiceRunning(message.data.running);
             }
           } catch (error) {
@@ -258,6 +261,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         wsRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEnabled, hasPermissions.camera]);
 
   useEffect(() => {
@@ -380,21 +384,6 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       logVapiDebug("Starting voice assistant with multimodal context");
 
-      // Prepare intro message with sentiment awareness
-      let introMessage = "Hello! I'm Tee, your T-Care AI assistant.";
-
-      if (currentSentiment) {
-        if (currentSentiment.value < 0) {
-          introMessage = "Hello! I'm Tee, your T-Care AI assistant. I'm here to help resolve any issues you're experiencing.";
-        } else if (currentSentiment.value > 0) {
-          introMessage = "Hello! I'm Tee, your T-Care AI assistant. I'm glad to see you! How can I help you today?";
-        } else {
-          introMessage += " How can I help you today?";
-        }
-      } else {
-        introMessage += " How can I help you today?";
-      }
-
       // Get multimodal context payload
       const contextPayload = getMultimodalContext();
 
@@ -403,7 +392,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
 ${contextPayload}
 
 INSTRUCTIONS:
-- You are a T-Mobile customer care AI assistant
+- You are Tee, a T-Mobile customer care AI assistant
 - You can help with account questions, technical support, plan information, and device compatibility
 - You have access to the user's current page and sentiment
 - If the user seems frustrated (negative sentiment), be extra empathetic and prioritize quick solutions
@@ -411,9 +400,12 @@ INSTRUCTIONS:
 - Available pages: Home, Plans, Devices, Network Status, Help, AI Assistant
 - Always be helpful, concise, and action-oriented
 - Focus on hands-free assistance - guide the user through tasks without requiring them to touch the screen
+- IMPORTANT: When the user first speaks to you, greet them warmly and introduce yourself as Tee, their T-Care AI assistant
+- Adapt your greeting based on their sentiment if available
 `;
 
-      await startVoiceCall(introMessage, enhancedContext);
+      // Start voice call without intro message - assistant will wait for user to speak first
+      await startVoiceCall(undefined, enhancedContext);
       setIsVoiceActive(true);
       logVapiDebug("Voice assistant started successfully with context", {
         contextLength: enhancedContext.length,
@@ -472,7 +464,7 @@ INSTRUCTIONS:
         throw new Error('WebSocket not connected');
       }
 
-      wsRef.current.send(JSON.stringify({ type: 'start', cameraIndex: 1 }));
+      wsRef.current.send(JSON.stringify({ type: 'start', cameraIndex: 0 }));  // Camera 0 = front camera
       logVapiDebug('Sentiment service start requested');
     } catch (error) {
       logVapiWarn('Failed to start sentiment service', error);
