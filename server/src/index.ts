@@ -378,6 +378,15 @@ app.post('/api/admin/parallel-extract', async (req, res) => {
 // Telegram Notification endpoint - Send tower status notification
 app.post('/api/notifications/telegram/tower-status', async (req, res) => {
   try {
+    // Check if telegram service is configured
+    if (!telegramService.isServiceConfigured()) {
+      return res.status(503).json({
+        success: false,
+        error: 'Telegram service not configured',
+        message: 'TELEGRAM_BOT_TOKEN not set in environment variables',
+      });
+    }
+
     const { chatId, towerId, towerRegion, status, userLocation } = req.body;
 
     if (!chatId) {
