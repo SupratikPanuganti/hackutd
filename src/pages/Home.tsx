@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { TopNav } from "@/components/TopNav";
 import LiquidEther from "@/components/LiquidEther";
 import { AgentOnboardingDialog } from "@/components/AgentOnboardingDialog";
@@ -65,33 +64,6 @@ const Home = () => {
                 </Link>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Quick Service Check */}
-        <section className="relative py-20">
-          <div className="container mx-auto px-4">
-            <Card className="max-w-2xl mx-auto rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10">
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-2xl font-semibold text-white drop-shadow-lg">Check Your Service</CardTitle>
-                <CardDescription className="text-base text-white/90 mt-2">
-                  Enter your ZIP code to see available coverage
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-3">
-                  <Input 
-                    placeholder="Enter ZIP code" 
-                    className="flex-1 rounded-xl border-white/30 bg-white/20 backdrop-blur-sm text-white placeholder:text-white/60 focus:border-white/50 focus:ring-white/30 focus:bg-white/25" 
-                  />
-                  <Button 
-                    className="rounded-xl bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md px-6 shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    Check
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </section>
 
