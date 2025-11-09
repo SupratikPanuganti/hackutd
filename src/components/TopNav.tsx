@@ -1,12 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useAgentic } from "@/contexts/AgenticContext";
 import { isVoiceIntegrationConfigured } from "@/lib/vapiClient";
 import { useToast } from "@/hooks/use-toast";
 import { SentimentDisplay } from "@/components/SentimentDisplay";
+import { useUser } from "@/contexts/UserContext";
 
 export const TopNav = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -16,6 +17,7 @@ export const TopNav = () => {
   const { isEnabled, enableAgenticMode, disableAgenticMode, startVoiceAssistant, stopVoiceAssistant } = useAgentic();
   const { toast } = useToast();
   const location = useLocation();
+  const { user, isAdmin, logout } = useUser();
 
   // Shared T-Mobile magenta gradient
   const MAGENTA_GRADIENT =
@@ -31,13 +33,27 @@ export const TopNav = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const links = [
-    { to: "/plans", label: "Plans" },
-    { to: "/devices", label: "Devices" },
-    { to: "/status", label: "Network" },
-    { to: "/help", label: "Help" },
-    { to: "/admin", label: "Admin" },
+  // Define all possible links with role requirements
+  const allLinks = [
+    { to: "/plans", label: "Plans", roles: ['user'] },
+    { to: "/devices", label: "Devices", roles: ['user'] },
+    { to: "/status", label: "Network", roles: ['user', 'admin'] },
+    { to: "/help", label: "Help", roles: ['user'] },
+    { to: "/admin", label: "Admin", roles: ['admin'] },
   ];
+
+  // Filter links based on user role
+  const links = useMemo(() => {
+    if (!user) {
+      // If no user is logged in, show all links except admin
+      return allLinks.filter(link => link.to !== '/admin');
+    }
+
+    // Filter based on user's role
+    return allLinks.filter(link =>
+      link.roles.includes(user.role)
+    );
+  }, [user]);
 
   const isActive = (to: string) =>
     location.pathname === to || (to !== "/" && location.pathname.startsWith(to));
@@ -153,19 +169,33 @@ export const TopNav = () => {
                 )}
               />
             </div>
-            {/* Sign In only, gradient */}
-            <Link to="/login" className="relative z-20">
+            {/* Sign In/User Menu */}
+            {user ? (
               <Button
                 size="sm"
+                onClick={logout}
                 className={cn(
                   "inline-flex rounded-xl relative z-20 transition-all duration-300 backdrop-blur-md",
                   MAGENTA_GRADIENT,
                   "px-4 py-2 hover:brightness-110"
                 )}
               >
-                Sign In
+                {user.first_name || 'User'} (Logout)
               </Button>
-            </Link>
+            ) : (
+              <Link to="/login" className="relative z-20">
+                <Button
+                  size="sm"
+                  className={cn(
+                    "inline-flex rounded-xl relative z-20 transition-all duration-300 backdrop-blur-md",
+                    MAGENTA_GRADIENT,
+                    "px-4 py-2 hover:brightness-110"
+                  )}
+                >
+                  Sign In
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -243,19 +273,36 @@ export const TopNav = () => {
               />
             </div>
 
-            {/* Sign In only (gradient) */}
-            <Link to="/login" className="flex-1 relative z-20" onClick={() => setMobileMenuOpen(false)}>
+            {/* Sign In/User Menu (gradient) */}
+            {user ? (
               <Button
                 size="sm"
+                onClick={() => {
+                  logout();
+                  setMobileMenuOpen(false);
+                }}
                 className={cn(
                   "w-full rounded-xl relative z-20 transition-all duration-300 backdrop-blur-md py-3",
                   MAGENTA_GRADIENT,
                   "hover:brightness-110"
                 )}
               >
-                Sign In
+                {user.first_name || 'User'} (Logout)
               </Button>
-            </Link>
+            ) : (
+              <Link to="/login" className="flex-1 relative z-20" onClick={() => setMobileMenuOpen(false)}>
+                <Button
+                  size="sm"
+                  className={cn(
+                    "w-full rounded-xl relative z-20 transition-all duration-300 backdrop-blur-md py-3",
+                    MAGENTA_GRADIENT,
+                    "hover:brightness-110"
+                  )}
+                >
+                  Sign In
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

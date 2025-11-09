@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AgenticProvider } from "@/contexts/AgenticContext";
+import { UserProvider } from "@/contexts/UserContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FloatingAssistant } from "@/components/FloatingAssistant";
 import Home from "./pages/Home";
 import Plans from "./pages/Plans";
@@ -33,7 +35,14 @@ const AppContent = () => {
         <Route path="/assist" element={<Assist />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Admin />
+            </ProtectedRoute>
+          }
+        />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -48,9 +57,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AgenticProvider>
-          <AppContent />
-        </AgenticProvider>
+        <UserProvider>
+          <AgenticProvider>
+            <AppContent />
+          </AgenticProvider>
+        </UserProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
