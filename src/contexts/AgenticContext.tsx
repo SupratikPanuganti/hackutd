@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { logVapiDebug, logVapiWarn } from '@/lib/vapiClient';
+import { logVapiDebug, logVapiWarn, startVoiceCall, stopVoiceCall } from '@/lib/vapiClient';
 
 interface AgenticPermissions {
   camera: boolean;
@@ -14,6 +14,7 @@ interface AgenticContextType {
   sessionId: string;
   currentContext: string;
   hasSeenOnboarding: boolean;
+  isVoiceActive: boolean;
   enableAgenticMode: () => Promise<boolean>;
   disableAgenticMode: () => void;
   toggleAssistant: () => void;
@@ -21,6 +22,8 @@ interface AgenticContextType {
   closeAssistant: () => void;
   requestPermissions: () => Promise<AgenticPermissions>;
   markOnboardingComplete: () => void;
+  startVoiceAssistant: () => Promise<void>;
+  stopVoiceAssistant: () => Promise<void>;
 }
 
 const AgenticContext = createContext<AgenticContextType | undefined>(undefined);
@@ -46,6 +49,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(() => {
     return localStorage.getItem(ONBOARDING_KEY) === 'true';
   });
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
 
   useEffect(() => {
     setCurrentContext(location.pathname);
@@ -103,6 +107,12 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
   const disableAgenticMode = () => {
     setIsEnabled(false);
     setIsAssistantOpen(false);
+    if (isVoiceActive) {
+      stopVoiceCall().catch((error) => {
+        logVapiWarn("Error stopping voice on disable", error);
+      });
+      setIsVoiceActive(false);
+    }
     logVapiDebug("Agentic mode disabled");
   };
 
@@ -130,6 +140,32 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
     logVapiDebug("Onboarding marked complete");
   };
 
+  const startVoiceAssistant = async () => {
+    try {
+      logVapiDebug("Starting voice assistant");
+      const introMessage = "Hello! I'm Tee, your T-Care AI assistant. How can I help you today?";
+      await startVoiceCall(introMessage);
+      setIsVoiceActive(true);
+      logVapiDebug("Voice assistant started successfully");
+    } catch (error) {
+      logVapiWarn("Failed to start voice assistant", error);
+      setIsVoiceActive(false);
+      throw error;
+    }
+  };
+
+  const stopVoiceAssistant = async () => {
+    try {
+      logVapiDebug("Stopping voice assistant");
+      await stopVoiceCall();
+      setIsVoiceActive(false);
+      logVapiDebug("Voice assistant stopped successfully");
+    } catch (error) {
+      logVapiWarn("Failed to stop voice assistant", error);
+      throw error;
+    }
+  };
+
   return (
     <AgenticContext.Provider
       value={{
@@ -139,6 +175,7 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         sessionId,
         currentContext,
         hasSeenOnboarding,
+        isVoiceActive,
         enableAgenticMode,
         disableAgenticMode,
         toggleAssistant,
@@ -146,6 +183,8 @@ export const AgenticProvider: React.FC<{ children: ReactNode }> = ({ children })
         closeAssistant,
         requestPermissions,
         markOnboardingComplete,
+        startVoiceAssistant,
+        stopVoiceAssistant,
       }}
     >
       {children}

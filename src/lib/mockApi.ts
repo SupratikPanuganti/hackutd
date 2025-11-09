@@ -31,13 +31,13 @@ export interface StatusResponse {
 export interface PlaybookRunRequest {
   session_id: string;
   step: string;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
 }
 
 export interface PlaybookRunResponse {
   step: string;
   result: string;
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
   evidence_url: string;
 }
 
@@ -137,7 +137,7 @@ export const mockApi = {
   async runPlaybookStep(req: PlaybookRunRequest): Promise<PlaybookRunResponse> {
     await delay(1000);
 
-    const results: Record<string, any> = {
+    const results: Record<string, unknown> = {
       toggle_airplane: {
         result: "completed",
         metrics: { duration_sec: 5 },
