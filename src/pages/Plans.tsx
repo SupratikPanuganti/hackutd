@@ -27,6 +27,10 @@ const Plans = () => {
     [plans],
   );
 
+  // Reusable magenta gradient to match LiquidEther (#5A0040 -> #E20074)
+  const magentaGradient =
+    "bg-gradient-to-r from-[#5A0040] to-[#E20074] hover:from-[#6f0052] hover:to-[#ff0a88] text-white border-0 shadow-lg hover:shadow-xl";
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Full Page Three.js Background */}
@@ -57,136 +61,133 @@ const Plans = () => {
         <TopNav />
 
         <main className="flex-1 relative">
-        <section className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-lg">Choose Your Perfect Plan</h1>
-              <p className="text-xl text-white/90 drop-shadow-md">
-                All plans include unlimited talk, text, and 5G data
-              </p>
-            </div>
-            {isMockData && (
-              <div className="mt-6 mx-auto max-w-2xl">
-                <Card className="border-yellow-400/30 bg-yellow-500/10 text-white">
-                  <CardContent className="py-4">
-                    <p className="text-sm">
-                      Unable to reach Supabase. Showing mock data instead. Double check your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values.
-                    </p>
-                  </CardContent>
-                </Card>
+          <section className="py-12">
+            <div className="container mx-auto px-4">
+              <div className="text-center max-w-3xl mx-auto">
+                <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-lg">Choose Your Perfect Plan</h1>
+                <p className="text-xl text-white/90 drop-shadow-md">
+                  All plans include unlimited talk, text, and 5G data
+                </p>
               </div>
-            )}
-          </div>
-        </section>
-
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            {isLoading && (
-              <div className="flex justify-center">
-                <Card className="border-white/20 bg-white/5 text-white backdrop-blur-md px-6 py-4">
-                  <span>Loading plans…</span>
-                </Card>
-              </div>
-            )}
-
-            {isError && (
-              <div className="flex justify-center">
-                <Card className="border-red-400/40 bg-red-500/10 text-white backdrop-blur-md px-6 py-4">
-                  <span>Failed to load plans: {(error as Error).message}</span>
-                </Card>
-              </div>
-            )}
-
-            {!isLoading && !isError && (
-              <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                {plans.map((plan) => (
-                  <Card
-                    key={plan.id}
-                    className={cn(
-                      "rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10 transition-all duration-300",
-                      plan.popular ? "border-white/30 shadow-[0_8px_32px_0_rgba(255,255,255,0.2)] hover:bg-white/15" : "hover:shadow-xl hover:bg-white/15 hover:scale-105"
-                    )}
-                  >
-                    {plan.popular && (
-                      <div className="bg-white/20 text-white text-center py-2 rounded-t-2xl font-semibold backdrop-blur-sm border-b border-white/20">
-                        Most Popular
-                      </div>
-                    )}
-                    <CardHeader>
-                      <CardTitle className="text-2xl text-white drop-shadow-md flex items-center gap-2">
-                        {plan.name}
-                        {plan._fromDatabase && (
-                          <Badge variant="outline" className="bg-green-500/20 border-green-500/40 text-green-100">
-                            Live
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription className="text-3xl font-bold text-white mt-2 drop-shadow-md">
-                        ${plan.price}<span className="text-base text-white/80">/mo</span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-3 mb-6">
-                        {plan.features.map((feature, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-white shrink-0 mt-0.5">✓</span>
-                            <span className="text-sm text-white/90">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <Button 
-                        className={cn(
-                          "w-full rounded-xl backdrop-blur-md transition-all duration-300",
-                          plan.popular 
-                            ? "bg-white/20 hover:bg-white/30 text-white border border-white/30 shadow-lg hover:shadow-xl" 
-                            : "bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/30"
-                        )}
-                      >
-                        {plan.popular ? "Get Started" : "Add Line"}
-                      </Button>
+              {isMockData && (
+                <div className="mt-6 mx-auto max-w-2xl">
+                  <Card className="border-yellow-400/30 bg-yellow-500/10 text-white">
+                    <CardContent className="py-4">
+                      <p className="text-sm">
+                        Unable to reach Supabase. Showing mock data instead. Double check your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values.
+                      </p>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto">
-              <Card className="rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10 p-8">
-                <h2 className="text-3xl font-bold mb-8 text-center text-white drop-shadow-lg">Frequently Asked Questions</h2>
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="item-1" className="border-white/20">
-                    <AccordionTrigger className="text-white hover:text-white/90">Can I switch plans anytime?</AccordionTrigger>
-                    <AccordionContent className="text-white/90">
-                      Yes! You can change your plan at any time. The new plan will take effect at the start of your next billing cycle.
-                    </AccordionContent>
-                  </AccordionItem>
-                  <AccordionItem value="item-2" className="border-white/20">
-                    <AccordionTrigger className="text-white hover:text-white/90">What's included with unlimited data?</AccordionTrigger>
-                    <AccordionContent className="text-white/90">
-                      All our plans include unlimited talk, text, and data. Premium data amounts vary by plan, after which speeds may be reduced during congestion.
-                    </AccordionContent>
-                  </AccordionItem>
-                  <AccordionItem value="item-3" className="border-white/20">
-                    <AccordionTrigger className="text-white hover:text-white/90">Do you offer family discounts?</AccordionTrigger>
-                    <AccordionContent className="text-white/90">
-                      Yes! Add additional lines and save. Each additional line gets progressively discounted. Contact us for family plan pricing.
-                    </AccordionContent>
-                  </AccordionItem>
-                  <AccordionItem value="item-4" className="border-white/20">
-                    <AccordionTrigger className="text-white hover:text-white/90">Is 5G included in all plans?</AccordionTrigger>
-                    <AccordionContent className="text-white/90">
-                      Absolutely! All our plans include access to our nationwide 5G network at no extra cost. Just make sure your device supports 5G.
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </Card>
+                </div>
+              )}
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              {isLoading && (
+                <div className="flex justify-center">
+                  <Card className="border-white/20 bg-white/5 text-white backdrop-blur-md px-6 py-4">
+                    <span>Loading plans…</span>
+                  </Card>
+                </div>
+              )}
+
+              {isError && (
+                <div className="flex justify-center">
+                  <Card className="border-red-400/40 bg-red-500/10 text-white backdrop-blur-md px-6 py-4">
+                    <span>Failed to load plans: {(error as Error).message}</span>
+                  </Card>
+                </div>
+              )}
+
+              {!isLoading && !isError && (
+                <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                  {plans.map((plan) => (
+                    <Card
+                      key={plan.id}
+                      className={cn(
+                        "rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10 transition-all duration-300",
+                        plan.popular
+                          ? "border-white/30 shadow-[0_8px_32px_0_rgba(255,255,255,0.2)] hover:bg-white/15"
+                          : "hover:shadow-xl hover:bg-white/15 hover:scale-105"
+                      )}
+                    >
+                      {plan.popular && (
+                        // T-Mobile gradient ribbon
+                        <div className="bg-gradient-to-r from-[#5A0040] to-[#E20074] text-white text-center py-2 rounded-t-2xl font-semibold border-b border-white/20 shadow-[inset_0_-1px_0_rgba(255,255,255,0.2)]">
+                          Most Popular
+                        </div>
+                      )}
+                      <CardHeader>
+                        <CardTitle className="text-2xl text-white drop-shadow-md flex items-center gap-2">
+                          {plan.name}
+                          {plan._fromDatabase && (
+                            <Badge variant="outline" className="bg-green-500/20 border-green-500/40 text-green-100">
+                              Live
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription className="text-3xl font-bold text-white mt-2 drop-shadow-md">
+                          ${plan.price}<span className="text-base text-white/80">/mo</span>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-3 mb-6">
+                          {plan.features.map((feature, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-white shrink-0 mt-0.5">✓</span>
+                              <span className="text-sm text-white/90">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {/* Gradient for BOTH buttons */}
+                        <Button className={cn("w-full rounded-xl backdrop-blur-md transition-all duration-300", magentaGradient)}>
+                          {plan.popular ? "Get Started" : "Add Line"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              <div className="max-w-3xl mx-auto">
+                <Card className="rounded-2xl border-white/20 shadow-2xl backdrop-blur-xl bg-white/10 p-8">
+                  <h2 className="text-3xl font-bold mb-8 text-center text-white drop-shadow-lg">Frequently Asked Questions</h2>
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="item-1" className="border-white/20">
+                      <AccordionTrigger className="text-white hover:text-white/90">Can I switch plans anytime?</AccordionTrigger>
+                      <AccordionContent className="text-white/90">
+                        Yes! You can change your plan at any time. The new plan will take effect at the start of your next billing cycle.
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="item-2" className="border-white/20">
+                      <AccordionTrigger className="text-white hover:text-white/90">What's included with unlimited data?</AccordionTrigger>
+                      <AccordionContent className="text-white/90">
+                        All our plans include unlimited talk, text, and data. Premium data amounts vary by plan, after which speeds may be reduced during congestion.
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="item-3" className="border-white/20">
+                      <AccordionTrigger className="text-white hover:text-white/90">Do you offer family discounts?</AccordionTrigger>
+                      <AccordionContent className="text-white/90">
+                        Yes! Add additional lines and save. Each additional line gets progressively discounted. Contact us for family plan pricing.
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="item-4" className="border-white/20">
+                      <AccordionTrigger className="text-white hover:text-white/90">Is 5G included in all plans?</AccordionTrigger>
+                      <AccordionContent className="text-white/90">
+                        Absolutely! All our plans include access to our nationwide 5G network at no extra cost. Just make sure your device supports 5G.
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </Card>
+              </div>
+            </div>
+          </section>
         </main>
       </div>
     </div>
