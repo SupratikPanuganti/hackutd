@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { SentimentService, SentimentData } from './services/sentimentService.js';
 import { DecisionEngine, MultimodalContext } from './services/decisionEngine.js';
 import { telegramService, TelegramNotification } from './services/telegramService.js';
+import { AutonomousAgent, AgenticContext } from './services/autonomousAgent.js';
 import { emailService, SOSEmailData, SupportTicketData } from './services/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -68,6 +69,9 @@ const sentimentService = new SentimentService();
 const decisionEngine = new DecisionEngine(
   (process.env.DECISION_ENGINE as 'openai' | 'nvidia') || 'nvidia'
 );
+
+// Initialize autonomous agent (Nemotron → OpenAI → Rules fallback)
+const autonomousAgent = new AutonomousAgent();
 
 // Store connected WebSocket clients
 const clients = new Set<WebSocket>();
@@ -333,6 +337,61 @@ app.post('/api/decision/analyze', async (req, res) => {
     console.error('[DecisionEngine] Error:', error);
     res.status(500).json({
       error: 'Decision analysis failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Autonomous agent endpoint - Nemotron-powered fully autonomous flow
+app.post('/api/agent/decide', async (req, res) => {
+  try {
+    const context: AgenticContext = req.body;
+
+    console.log('[AutonomousAgent] Decision request:', {
+      page: context.currentPage,
+      sentiment: context.currentSentiment,
+      trend: context.sentimentTrend,
+      lastInput: context.userLastInput?.substring(0, 50),
+    });
+
+    // Get current sentiment from service if not provided
+    const currentSentiment = sentimentService.getCurrentSentiment();
+    if (currentSentiment && !context.currentSentiment) {
+      context.currentSentiment = currentSentiment.value;
+      context.sentimentLabel = currentSentiment.value > 0 ? 'Happy' : currentSentiment.value < 0 ? 'Frustrated' : 'Neutral';
+    }
+
+    // Get sentiment trend if not provided
+    if (!context.sentimentTrend) {
+      context.sentimentTrend = sentimentService.getTrend();
+    }
+
+    // Get autonomous decision from Nemotron
+    const decision = await autonomousAgent.decide(context);
+
+    // Check if agent should take control
+    const shouldTakeControl = autonomousAgent.shouldTakeAutonomousControl(context);
+
+    console.log('[AutonomousAgent] Decision made:', {
+      primaryAction: decision.primaryAction.type,
+      target: decision.primaryAction.target,
+      shouldTakeControl,
+      estimatedSteps: decision.estimatedSteps,
+    });
+
+    res.json({
+      decision,
+      shouldTakeControl,
+      context: {
+        sentiment: context.currentSentiment,
+        trend: context.sentimentTrend,
+        page: context.currentPage,
+      },
+    });
+  } catch (error) {
+    console.error('[AutonomousAgent] Error:', error);
+    res.status(500).json({
+      error: 'Autonomous decision failed',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
@@ -662,6 +721,7 @@ server.listen(PORT, () => {
   console.log(`  POST /api/notifications/telegram/tower-status`);
   console.log(`  GET  /api/notifications/telegram/status`);
   console.log(`  POST /api/notifications/telegram/test`);
+  console.log(`  POST /api/agent/decide`);
   console.log(`  POST /api/notifications/email/sos`);
   console.log(`  GET  /api/notifications/email/status`);
   console.log(`  POST /api/notifications/email/test`);

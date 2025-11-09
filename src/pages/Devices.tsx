@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TopNav } from "@/components/TopNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { getDevices } from "@/lib/supabaseService";
 import { Device } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import LiquidEther from "@/components/LiquidEther";
+import { useAgentic } from "@/contexts/AgenticContext";
 
 type FilterType = "all" | "iOS" | "Android" | "5G" | "eSIM";
 
@@ -80,6 +81,7 @@ function buildFallbackFeatures(device: Device): string[] {
 }
 
 const Devices = () => {
+  const { updateScreenContext } = useAgentic();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [hoveringFilter, setHoveringFilter] = useState<FilterType | null>(null); // for "active loses color on other hover"
   const [expandedId, setExpandedId] = useState<string | null>(null); // which card shows the overlay
@@ -116,6 +118,28 @@ const Devices = () => {
     () => devices.length > 0 && devices.every((device) => device._fromDatabase === false),
     [devices]
   );
+
+  // Update screen context with visible devices for Vapi assistant
+  useEffect(() => {
+    if (devices.length > 0) {
+      const deviceList = devices
+        .map(d => {
+          const price = d.price !== null ? `$${d.price}` : "Contact sales";
+          const features = deviceKeyFeatures[d.name] || buildFallbackFeatures(d);
+          const keyFeatures = features.slice(0, 2).join("; ");
+          const badges = [
+            d.os,
+            d.supports_5g && "5G",
+            d.supports_esim && "eSIM"
+          ].filter(Boolean).join(", ");
+          return `- ${d.name}: ${price} | ${badges} | ${keyFeatures}`;
+        })
+        .join("\n");
+
+      const content = `DEVICES PAGE - Available Devices (filter: ${activeFilter}):\n${deviceList}\n\nSELLING TIPS:\n- iPhone users value camera quality, ecosystem, longevity\n- Android users want customization, value, latest features\n- 5G is standard - emphasize network coverage\n- eSIM means easy activation and dual-SIM capability`;
+      updateScreenContext({ visibleContent: content });
+    }
+  }, [devices, activeFilter, updateScreenContext]);
 
   const FilterBtn = ({ label, value }: { label: string; value: FilterType }) => {
     const isActive = activeFilter === value;

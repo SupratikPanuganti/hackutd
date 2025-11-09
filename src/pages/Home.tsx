@@ -1,10 +1,56 @@
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TopNav } from "@/components/TopNav";
 import LiquidEther from "@/components/LiquidEther";
+import { useAgentic } from "@/contexts/AgenticContext";
 
 const Home = () => {
+  const { updateScreenContext } = useAgentic();
+
+  // Update screen context for Vapi assistant
+  useEffect(() => {
+    const content = `HOME PAGE - T-Mobile Welcome
+
+MAIN HEADING: "Connect to What Matters Most"
+SUBHEADING: "Experience blazing-fast 5G coverage with unlimited plans designed for your lifestyle"
+
+CALL TO ACTION:
+- View Plans (navigate to /plans)
+- Network Status (navigate to /status)
+
+FEATURES:
+- Unlimited 5G Data
+- Nationwide Coverage
+- Flexible Plans
+- Latest Devices
+
+SELLING TIPS:
+- Welcome customers warmly
+- Ask what brought them here today
+- Offer to show plans or devices based on their needs
+- Mention 5G coverage and unlimited plans as key benefits
+- Can navigate them to any page: Plans, Devices, Network Status, Help`;
+
+    updateScreenContext({ visibleContent: content });
+  }, [updateScreenContext]);
+
+  // Debug helper: Add to window for testing
+  useEffect(() => {
+    // @ts-ignore - Debug helper
+    window.resetOnboarding = () => {
+      localStorage.removeItem('tcare_agent_onboarding_seen');
+      console.log('✅ Onboarding reset! Refresh the page to see the dialog again.');
+    };
+    // @ts-ignore - Debug helper
+    window.resetAgentMode = () => {
+      localStorage.removeItem('tcare_agentic_mode');
+      console.log('✅ Agent mode reset! Refresh the page.');
+    };
+    console.log('💡 Debug helpers available: resetOnboarding(), resetAgentMode()');
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Full Page Three.js Background */}

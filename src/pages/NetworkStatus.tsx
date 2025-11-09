@@ -9,6 +9,7 @@ import { MapboxMap } from "@/components/MapboxMap";
 import { LocationPermissionDialog } from "@/components/LocationPermissionDialog";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { sendTowerStatusNotification, checkTelegramStatus } from "@/lib/telegramService";
+import { useAgentic } from "@/contexts/AgenticContext";
 
 interface TowerDetails {
   id: string;
@@ -19,6 +20,7 @@ interface TowerDetails {
 }
 
 const NetworkStatus = () => {
+  const { updateScreenContext } = useAgentic();
   const [selectedTower, setSelectedTower] = useState<TowerDetails | null>(null);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
   const watchIdRef = useRef<number | null>(null);
@@ -402,6 +404,92 @@ const NetworkStatus = () => {
   const userLocation = (location.latitude !== null && location.longitude !== null && !location.error)
     ? { latitude: location.latitude, longitude: location.longitude }
     : null;
+
+  // Update screen context with network status data for Vapi assistant
+  useEffect(() => {
+    const parts: string[] = [];
+    parts.push('NETWORK STATUS PAGE - Live Tower Status & Incidents');
+    parts.push('');
+
+    // Tower overview
+    if (towers.length > 0) {
+      const okTowers = towers.filter(t => t.health === 'ok').length;
+      const degradedTowers = towers.filter(t => t.health !== 'ok').length;
+      parts.push(`NETWORK OVERVIEW:`);
+      parts.push(`- Total Towers: ${towers.length}`);
+      parts.push(`- Operational: ${okTowers}`);
+      parts.push(`- Degraded: ${degradedTowers}`);
+      parts.push('');
+
+      // Group towers by region
+      const regions = [...new Set(towers.map(t => t.region))];
+      parts.push('TOWERS BY REGION:');
+      regions.forEach(region => {
+        const regionTowers = towers.filter(t => t.region === region);
+        const regionOk = regionTowers.filter(t => t.health === 'ok').length;
+        const regionDegraded = regionTowers.filter(t => t.health !== 'ok').length;
+        parts.push(`- ${region}: ${regionTowers.length} towers (${regionOk} OK, ${regionDegraded} degraded)`);
+        regionTowers.forEach(t => {
+          parts.push(`  * ${t.id}: ${t.health === 'ok' ? '✓ Operational' : '⚠ Degraded'}`);
+        });
+      });
+      parts.push('');
+    }
+
+    // Active incidents
+    const activeIncidents = incidents.filter(i => !i.resolved);
+    const resolvedIncidents = incidents.filter(i => i.resolved);
+
+    if (activeIncidents.length > 0) {
+      parts.push('ACTIVE INCIDENTS:');
+      activeIncidents.forEach(inc => {
+        parts.push(`- ${inc.region}: ${inc.issue}`);
+        if (inc.eta) parts.push(`  ETA: ${inc.eta}`);
+        parts.push(`  Reported: ${new Date(inc.date).toLocaleDateString()}`);
+      });
+      parts.push('');
+    }
+
+    if (resolvedIncidents.length > 0) {
+      parts.push('RECENTLY RESOLVED:');
+      resolvedIncidents.forEach(inc => {
+        parts.push(`- ${inc.region}: ${inc.issue} (Resolved)`);
+      });
+      parts.push('');
+    }
+
+    // Selected tower details
+    if (selectedTower) {
+      parts.push('CURRENTLY VIEWING:');
+      parts.push(`- Tower: ${selectedTower.id}`);
+      parts.push(`- Region: ${selectedTower.region}`);
+      parts.push(`- Status: ${selectedTower.health === 'ok' ? 'Operational' : 'Degraded'}`);
+      parts.push(`- Location: ${selectedTower.lat.toFixed(4)}°N, ${selectedTower.lng.toFixed(4)}°W`);
+
+      const regionalIncidents = incidents.filter(inc => inc.region === selectedTower.region);
+      if (regionalIncidents.length > 0) {
+        parts.push(`- Regional Incidents: ${regionalIncidents.length}`);
+        regionalIncidents.forEach(inc => {
+          parts.push(`  * ${inc.issue} (${inc.resolved ? 'Resolved' : 'Active'})`);
+        });
+      }
+      parts.push('');
+    }
+
+    // User location
+    if (userLocation) {
+      parts.push(`USER LOCATION: ${userLocation.latitude.toFixed(4)}°N, ${userLocation.longitude.toFixed(4)}°W`);
+      parts.push('');
+    }
+
+    parts.push('SELLING TIPS:');
+    parts.push('- If issues reported: Acknowledge, explain resolution timeline, emphasize network reliability');
+    parts.push('- If all operational: Highlight network coverage, 5G availability, reliability');
+    parts.push('- Use real tower data to show coverage in user\'s area');
+
+    const content = parts.join('\n');
+    updateScreenContext({ visibleContent: content });
+  }, [towers, selectedTower, userLocation, updateScreenContext]);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-black">
