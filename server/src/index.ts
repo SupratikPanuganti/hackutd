@@ -89,8 +89,24 @@ wss.on('connection', (ws: WebSocket) => {
       if (data.type === 'start') {
         const cameraIndex = data.cameraIndex ?? 0;  // Default to camera 0 (front camera)
         sentimentService.start(cameraIndex);
+
+        // Send status update immediately to the requesting client
+        ws.send(
+          JSON.stringify({
+            type: 'status',
+            data: { running: true },
+          })
+        );
       } else if (data.type === 'stop') {
         sentimentService.stop();
+
+        // Send status update immediately
+        ws.send(
+          JSON.stringify({
+            type: 'status',
+            data: { running: false },
+          })
+        );
       }
     } catch (error) {
       console.error('Error processing WebSocket message:', error);
