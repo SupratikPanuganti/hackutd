@@ -12,6 +12,7 @@ export const TopNav = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTogglingAgent, setIsTogglingAgent] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hoveringPath, setHoveringPath] = useState<string | null>(null); // NEW
   const { isEnabled, enableAgenticMode, disableAgenticMode, startVoiceAssistant, stopVoiceAssistant } = useAgentic();
   const { toast } = useToast();
   const location = useLocation();
@@ -107,26 +108,34 @@ export const TopNav = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1 relative z-20">
-            {links.map((link) => (
-              <Link key={link.to} to={link.to} className="relative z-20">
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "rounded-xl px-4 py-2 transition-all duration-200 backdrop-blur-sm",
-                    isActive(link.to)
-                      ? cn(MAGENTA_GRADIENT, "hover:brightness-110")
-                      : cn(
-                        "text-white border border-transparent",
-                        "bg-transparent",
-                        "hover:brightness-110",
-                        MAGENTA_HOVER // <-- magenta on hover for inactive tabs
-                      )
-                  )}
-                >
-                  {link.label}
-                </Button>
-              </Link>
-            ))}
+            {links.map((link) => {
+              const active = isActive(link.to);
+              const showActiveGradient =
+                active && (!hoveringPath || hoveringPath === link.to);
+
+              return (
+                <Link key={link.to} to={link.to} className="relative z-20">
+                  <Button
+                    variant="ghost"
+                    onMouseEnter={() => setHoveringPath(link.to)}
+                    onMouseLeave={() => setHoveringPath(null)}
+                    className={cn(
+                      "rounded-xl px-4 py-2 transition-all duration-200 backdrop-blur-sm",
+                      showActiveGradient
+                        ? cn(MAGENTA_GRADIENT, "hover:brightness-110")
+                        : cn(
+                          "text-white border border-transparent",
+                          "bg-transparent",
+                          "hover:brightness-110",
+                          MAGENTA_HOVER // magenta on hover for inactive OR when another is hovered
+                        )
+                    )}
+                  >
+                    {link.label}
+                  </Button>
+                </Link>
+              );
+            })}
           </div>
 
           {/* Right side - Desktop */}
@@ -203,7 +212,7 @@ export const TopNav = () => {
                         "text-white border border-transparent",
                         "bg-transparent",
                         "hover:brightness-110",
-                        MAGENTA_HOVER // <-- magenta on hover for inactive tabs (mobile)
+                        MAGENTA_HOVER
                       )
                   )}
                 >
